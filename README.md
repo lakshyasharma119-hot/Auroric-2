@@ -16,7 +16,7 @@ A premium, Pinterest-inspired social platform for discovering, creating, and sha
 ### UI / Design
 - **Floating Navigation Bar** — Pill-shaped, glassmorphism bottom nav with glow halos and expand-on-hover behavior
 - **Auroric Logo** — Custom flame-gradient logo mark with "Auroric" branding
-- **Dark Theme** — Obsidian & Ember editorial palette with custom CSS tokens
+- **Dark Theme** — Fiery Sunset editorial palette with custom CSS tokens
 - **Smooth Animations** — Micro-animations, glow pulses, slide transitions
 
 ### Profile Picture Upload

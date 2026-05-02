@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { AppProvider } from '@/lib/app-context'
+import { ThemeProvider } from '@/lib/theme-context'
 import AuthSessionProvider from '@/components/session-provider'
 import FloatingNav from '@/components/floating-nav'
 
@@ -21,19 +22,34 @@ export const metadata: Metadata = {
   },
 }
 
+// Inline script to apply theme before paint (prevents flash)
+const themeScript = `
+(function(){
+  try {
+    var t = localStorage.getItem('auroric-theme');
+    if (t && t !== 'crimson') document.documentElement.setAttribute('data-theme', t);
+  } catch(e){}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="font-sans antialiased">
         <AuthSessionProvider>
-          <AppProvider>
-            {children}
-            <FloatingNav />
-          </AppProvider>
+          <ThemeProvider>
+            <AppProvider>
+              {children}
+              <FloatingNav />
+            </AppProvider>
+          </ThemeProvider>
         </AuthSessionProvider>
       </body>
     </html>

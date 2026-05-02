@@ -24,7 +24,7 @@ export default function VerifiedBadge({ size = 'md', className = '', type = 'man
     const colorMap = {
         manual: 'from-blue-400 to-blue-600',     // Founder-granted
         organic: 'from-emerald-400 to-emerald-600', // Activity-based
-        paid: 'from-amber-400 to-amber-600',     // Paid subscription
+        paid: 'from-red-400 to-red-600',     // Paid subscription
     };
 
     const gradient = colorMap[type] || colorMap.manual;
@@ -42,8 +42,8 @@ export default function VerifiedBadge({ size = 'md', className = '', type = 'man
                 {/* Badge background with gradient */}
                 <defs>
                     <linearGradient id={`badge-gradient-${type}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" className={`text-${type === 'manual' ? 'blue' : type === 'organic' ? 'emerald' : 'amber'}-400`} style={{ stopColor: type === 'manual' ? '#60a5fa' : type === 'organic' ? '#34d399' : '#fbbf24' }} />
-                        <stop offset="100%" className={`text-${type === 'manual' ? 'blue' : type === 'organic' ? 'emerald' : 'amber'}-600`} style={{ stopColor: type === 'manual' ? '#2563eb' : type === 'organic' ? '#059669' : '#d97706' }} />
+                        <stop offset="0%" style={{ stopColor: type === 'manual' ? '#60a5fa' : type === 'organic' ? '#34d399' : 'var(--badge-paid-light)' }} />
+                        <stop offset="100%" style={{ stopColor: type === 'manual' ? '#2563eb' : type === 'organic' ? '#059669' : 'var(--badge-paid-dark)' }} />
                     </linearGradient>
                     {/* Shimmer animation */}
                     <linearGradient id={`shimmer-${type}`} x1="-100%" y1="0%" x2="200%" y2="0%">

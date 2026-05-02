@@ -69,7 +69,7 @@ export default function AntiGravityGallery({ pins }: { pins: Pin[] }) {
                 {/* Hover frosted glass overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
                   <div className="flex items-center gap-2 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <Heart className="w-5 h-5 fill-accent text-accent drop-shadow-[0_0_12px_rgba(255,100,0,0.8)]" />
+                    <Heart className="w-5 h-5 fill-accent text-accent" style={{ filter: 'drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.8))' }} />
                     <span className="font-bold font-syne text-lg drop-shadow-md">{pin.likes.length}</span>
                   </div>
                 </div>

@@ -62,7 +62,8 @@ export default function AvatarCropModal({ imageFile, onCrop, onCancel }: AvatarC
     // Draw circular border
     ctx.beginPath();
     ctx.arc(cropSize / 2, cropSize / 2, cropSize / 2 - 1, 0, Math.PI * 2);
-    ctx.strokeStyle = 'hsl(24 90% 55% / 0.5)';
+    const accentHsl = getComputedStyle(document.documentElement).getPropertyValue('--accent-hsl-raw').trim() || '0 85% 55%';
+    ctx.strokeStyle = `hsl(${accentHsl} / 0.5)`;
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -82,7 +83,8 @@ export default function AvatarCropModal({ imageFile, onCrop, onCancel }: AvatarC
         pctx.restore();
         pctx.beginPath();
         pctx.arc(previewSize / 2, previewSize / 2, previewSize / 2 - 1, 0, Math.PI * 2);
-        pctx.strokeStyle = 'hsl(24 90% 55% / 0.4)';
+        const pAccentHsl = getComputedStyle(document.documentElement).getPropertyValue('--accent-hsl-raw').trim() || '0 85% 55%';
+        pctx.strokeStyle = `hsl(${pAccentHsl} / 0.4)`;
         pctx.lineWidth = 2;
         pctx.stroke();
       }

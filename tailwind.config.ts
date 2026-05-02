@@ -11,6 +11,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        /* ── Fiery Sunset brand palette ── */
+        'brand-snow':    '#FDFFFF',
+        'brand-crimson': '#B10F2E',
+        'brand-maroon':  '#570000',
+        'brand-dark':    '#280000',
+        'brand-peach':   '#DE7C5A',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

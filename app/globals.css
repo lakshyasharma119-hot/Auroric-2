@@ -4,38 +4,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════
+   THEME TOKENS
+   Default = Obsidian & Crimson  |  Alt = Fiery Sunset
+   ═══════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
-    /* Auroric — Obsidian & Ember editorial palette */
+    /* Auroric — Obsidian & Crimson (DEFAULT) */
     --background: 220 14% 5%;
     --foreground: 40 10% 92%;
     --card: 220 12% 9%;
     --card-foreground: 40 10% 92%;
     --popover: 220 14% 8%;
     --popover-foreground: 40 10% 92%;
-    --primary: 24 90% 55%;
+    --primary: 0 85% 55%;
     --primary-foreground: 220 14% 5%;
     --secondary: 220 12% 16%;
     --secondary-foreground: 40 10% 85%;
     --muted: 220 10% 18%;
     --muted-foreground: 220 10% 55%;
-    --accent: 24 90% 55%;
+    --accent: 0 85% 55%;
     --accent-foreground: 220 14% 5%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 12% 15%;
     --input: 220 12% 15%;
-    --ring: 24 90% 55%;
-    --chart-1: 24 90% 55%;
+    --ring: 0 85% 55%;
+    --chart-1: 0 85% 55%;
     --chart-2: 160 60% 45%;
     --chart-3: 220 12% 30%;
     --chart-4: 340 65% 55%;
     --chart-5: 45 85% 60%;
     --radius: 0.75rem;
     /* Semantic tokens */
-    --glow: 24 90% 55%;
+    --glow: 0 85% 55%;
     --surface: 220 12% 7%;
     --surface-raised: 220 12% 11%;
+    /* Component-level tokens (for hardcoded color references) */
+    --accent-rgb: 239, 68, 68;
+    --accent-hsl-raw: 0 85% 55%;
+    --badge-paid-light: #f87171;
+    --badge-paid-dark: #dc2626;
+    --nav-pill-border: rgba(255, 255, 255, 0.15);
+    --nav-pill-shadow: rgba(0, 0, 0, 0.4);
+  }
+
+  /* ── Fiery Sunset Theme ── */
+  [data-theme="fiery-sunset"] {
+    --background: 0 100% 8%;
+    --foreground: 180 100% 99%;
+    --card: 0 100% 11%;
+    --card-foreground: 180 100% 99%;
+    --popover: 0 100% 10%;
+    --popover-foreground: 180 100% 99%;
+    --primary: 349 84% 38%;
+    --primary-foreground: 180 100% 99%;
+    --secondary: 0 100% 17%;
+    --secondary-foreground: 180 100% 95%;
+    --muted: 0 60% 14%;
+    --muted-foreground: 0 30% 55%;
+    --accent: 349 84% 38%;
+    --accent-foreground: 180 100% 99%;
+    --destructive: 0 100% 17%;
+    --destructive-foreground: 180 100% 99%;
+    --border: 0 100% 17%;
+    --input: 0 100% 17%;
+    --ring: 349 84% 38%;
+    --chart-1: 349 84% 38%;
+    --chart-2: 16 67% 61%;
+    --chart-3: 0 60% 25%;
+    --chart-4: 0 100% 17%;
+    --chart-5: 16 67% 75%;
+    --glow: 349 84% 38%;
+    --surface: 0 100% 9%;
+    --surface-raised: 0 100% 13%;
+    /* Component-level tokens */
+    --accent-rgb: 177, 15, 46;
+    --accent-hsl-raw: 349 84% 38%;
+    --badge-paid-light: #DE7C5A;
+    --badge-paid-dark: #B10F2E;
+    --nav-pill-border: rgba(87, 0, 0, 0.3);
+    --nav-pill-shadow: rgba(40, 0, 0, 0.5);
   }
 }
 
@@ -299,14 +349,14 @@ body {
   background: hsl(var(--card) / 0.6);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--nav-pill-border);
+  box-shadow: 0 8px 32px var(--nav-pill-shadow);
   transition: all 0.3s ease;
 }
 
 .floating-nav-pill:hover {
   border: 1px solid hsl(var(--accent) / 0.5);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px hsl(var(--accent) / 0.2);
+  box-shadow: 0 8px 32px var(--nav-pill-shadow), 0 0 16px hsl(var(--accent) / 0.2);
 }
 
 .floating-nav-expanded {
@@ -370,4 +420,3 @@ body {
 .animate-anti-gravity:hover {
   animation-play-state: paused;
 }
-

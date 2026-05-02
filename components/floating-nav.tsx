@@ -220,7 +220,7 @@ export default function FloatingNav() {
 
   const expandedItems: NavItem[] = [
     { id: 'create', href: '/create', icon: <Plus className="w-5 h-5" />, label: 'Create', color: 'text-emerald-600 dark:text-emerald-400', hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-500/10' },
-    { id: 'notifications', href: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Alerts', color: 'text-amber-600 dark:text-amber-400', hoverBg: 'hover:bg-amber-50 dark:hover:bg-amber-500/10', badge: unreadCount },
+    { id: 'notifications', href: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Alerts', color: 'text-rose-600 dark:text-rose-400', hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-500/10', badge: unreadCount },
     { id: 'settings', href: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings', color: 'text-slate-600 dark:text-slate-400', hoverBg: 'hover:bg-slate-50 dark:hover:bg-slate-500/10' },
     { id: 'logout', href: '#', icon: <LogOut className="w-5 h-5" />, label: 'Sign Out', color: 'text-red-500 dark:text-red-400', hoverBg: 'hover:bg-red-50 dark:hover:bg-red-500/10', onClick: logout },
   ];
