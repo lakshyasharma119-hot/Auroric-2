@@ -6,6 +6,7 @@ import Footer from '@/components/footer';
 import PinCard from '@/components/pin-card';
 import MasonryGrid from '@/components/masonry-grid';
 import AntiGravityGallery from '@/components/anti-gravity-gallery';
+import OrganicBlobs from '@/components/organic-blobs';
 import { ArrowRight, Flame, Compass, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/lib/app-context';
@@ -65,6 +66,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
+      <OrganicBlobs />
 
       {/* Hero — editorial, atmospheric */}
       <section className="w-full relative overflow-hidden bg-transparent">
