@@ -87,6 +87,82 @@
     --nav-pill-border: rgba(87, 0, 0, 0.3);
     --nav-pill-shadow: rgba(40, 0, 0, 0.5);
   }
+
+  /* ── Quiet Luxury Theme (Light) ── */
+  [data-theme="quiet-luxury"] {
+    --background: 43 27% 95%;
+    --foreground: 27 11% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 27 11% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 27 11% 16%;
+    --primary: 23 33% 41%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 21% 90%;
+    --secondary-foreground: 27 11% 16%;
+    --muted: 40 21% 90%;
+    --muted-foreground: 25 5% 41%;
+    --accent: 23 33% 41%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 30 16% 84%;
+    --input: 30 16% 84%;
+    --ring: 23 33% 41%;
+    --chart-1: 23 33% 41%;
+    --chart-2: 43 27% 95%;
+    --chart-3: 0 0% 100%;
+    --chart-4: 27 11% 16%;
+    --chart-5: 40 21% 90%;
+    --glow: 23 33% 41%;
+    --surface: 0 0% 100%;
+    --surface-raised: 40 21% 90%;
+    /* Component-level tokens */
+    --accent-rgb: 138, 96, 70;
+    --accent-hsl-raw: 23 33% 41%;
+    --badge-paid-light: #A3765A;
+    --badge-paid-dark: #8A6046;
+    --nav-pill-border: rgba(45, 40, 36, 0.1);
+    --nav-pill-shadow: rgba(45, 40, 36, 0.05);
+  }
+
+  /* ── Modern Editorial Theme (Dark) ── */
+  [data-theme="modern-editorial"] {
+    --background: 216 28% 7%;
+    --foreground: 212 33% 93%;
+    --card: 215 21% 11%;
+    --card-foreground: 212 33% 93%;
+    --popover: 215 21% 11%;
+    --popover-foreground: 212 33% 93%;
+    --primary: 150 21% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 15% 15%;
+    --secondary-foreground: 212 33% 93%;
+    --muted: 215 15% 15%;
+    --muted-foreground: 212 9% 58%;
+    --accent: 150 21% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 212 12% 21%;
+    --input: 212 12% 21%;
+    --ring: 150 21% 45%;
+    --chart-1: 150 21% 45%;
+    --chart-2: 216 28% 7%;
+    --chart-3: 215 21% 11%;
+    --chart-4: 212 33% 93%;
+    --chart-5: 215 15% 15%;
+    --glow: 150 21% 45%;
+    --surface: 215 21% 11%;
+    --surface-raised: 215 15% 15%;
+    /* Component-level tokens */
+    --accent-rgb: 91, 138, 114;
+    --accent-hsl-raw: 150 21% 45%;
+    --badge-paid-light: #77A68E;
+    --badge-paid-dark: #5B8A72;
+    --nav-pill-border: rgba(255, 255, 255, 0.1);
+    --nav-pill-shadow: rgba(0, 0, 0, 0.4);
+  }
 }
 
 @layer base {

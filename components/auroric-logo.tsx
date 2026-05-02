@@ -28,14 +28,10 @@ export default function AuroricLogo({ size = 'md', showText = true, className = 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div
-        className="flex-shrink-0 overflow-hidden rounded-full bg-slate-900"
-        style={{ width: img, height: img }}
+        className="flex-shrink-0 rounded-full bg-accent flex items-center justify-center text-accent-foreground font-syne font-bold"
+        style={{ width: img, height: img, fontSize: img * 0.55 }}
       >
-        <img
-          src="/logo.png"
-          alt="Auroric"
-          className="w-full h-full object-cover object-center scale-110"
-        />
+        A
       </div>
       {showText && (
         <span className={`font-bold text-accent font-syne tracking-tight ${textSizeMap[size]}`}>

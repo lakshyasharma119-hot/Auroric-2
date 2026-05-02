@@ -226,9 +226,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           <X className="w-5 h-5" />
         </button>
 
+        {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-full overflow-hidden mx-auto mb-3 bg-slate-900">
-            <img src="/logo.png" alt="Auroric" className="w-full h-full object-cover object-center scale-110" />
+          <div className="w-12 h-12 mx-auto rounded-full bg-accent flex items-center justify-center text-accent-foreground font-syne font-bold text-2xl mb-3 shadow-md shadow-accent/20">
+            A
           </div>
           <h2 className="text-2xl font-bold">{mode === 'login' ? 'Welcome Back' : 'Join Auroric'}</h2>
           <p className="text-foreground/60 text-sm mt-1">

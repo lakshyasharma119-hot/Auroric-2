@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
-export type ThemeId = 'crimson' | 'fiery-sunset';
+export type ThemeId = 'crimson' | 'fiery-sunset' | 'quiet-luxury' | 'modern-editorial';
 
 export interface ThemeInfo {
   id: ThemeId;
@@ -23,6 +23,18 @@ export const THEMES: ThemeInfo[] = [
     name: 'Fiery Sunset',
     description: 'Deep burgundy with crimson and peach warmth',
     swatches: ['#280000', '#B10F2E', '#570000', '#FDFFFF', '#DE7C5A'],
+  },
+  {
+    id: 'quiet-luxury',
+    name: 'Quiet Luxury',
+    description: 'Earthy light theme with alabaster and cognac',
+    swatches: ['#F7F5F0', '#FFFFFF', '#2D2824', '#8A6046', '#DCD7D2'],
+  },
+  {
+    id: 'modern-editorial',
+    name: 'Modern Editorial',
+    description: 'Slate and sage with cool modern tones',
+    swatches: ['#0D1117', '#161B22', '#E6EDF3', '#5B8A72', '#30363D'],
   },
 ];
 

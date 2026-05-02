@@ -128,7 +128,9 @@ function LogoItem({ isActive, mouseX }: { isActive: boolean; mouseX: MotionValue
         style={{ width, height: width }}
         className={`relative flex items-center justify-center rounded-full border border-border/40 bg-transparent overflow-hidden shadow-sm hover:shadow-lg transition-shadow ${isActive ? 'ring-2 ring-accent' : ''}`}
       >
-        <img src="/logo.png" alt="Auroric" className="w-full h-full object-cover object-center scale-110" />
+        <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0 overflow-hidden text-accent-foreground font-syne font-bold">
+          A
+        </div>
       </motion.div>
     </Link>
   );

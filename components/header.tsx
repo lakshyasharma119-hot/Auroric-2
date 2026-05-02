@@ -30,8 +30,8 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0 bg-transparent">
-              <div className="w-10 h-10 rounded-full border border-border/40 bg-transparent flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 overflow-hidden">
-                <img src="/logo.png" alt="Auroric" className="w-full h-full object-cover object-center scale-110" />
+              <div className="w-10 h-10 rounded-full border border-border/40 bg-accent flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 overflow-hidden text-accent-foreground font-syne font-bold text-xl">
+                A
               </div>
               <span className="bg-transparent text-lg font-bold text-accent tracking-tight font-syne">Auroric</span>
             </Link>
