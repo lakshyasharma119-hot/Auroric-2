@@ -3,17 +3,20 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, X, Menu, Bell, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Search, Plus, X, Menu, Bell, Settings, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
 import { useApp } from '@/lib/app-context';
+import { useTheme } from '@/lib/theme-context';
 import UserAvatar from '@/components/user-avatar';
 import AuthModal from '@/components/auth-modal';
 
 export default function Header() {
   const router = useRouter();
   const { currentUser, isLoggedIn, openAuthModal, showAuthModal, authModalMode, closeAuthModal, logout, unreadCount } = useApp();
+  const { theme, setTheme, themes } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -23,6 +26,9 @@ export default function Header() {
       setIsMenuOpen(false);
     }
   };
+
+  // Determine if current theme is "dark" (for icon display)
+  const isDarkTheme = theme === 'crimson' || theme === 'fiery-sunset' || theme === 'modern-editorial';
 
   return (
     <>
@@ -36,7 +42,7 @@ export default function Header() {
               <span className="bg-transparent text-lg font-bold text-accent tracking-tight font-syne">Auroric</span>
             </Link>
 
-            {/* Center: Search bar */}
+            {/* Center: Search bar (desktop only) */}
             <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-md mx-8">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-foreground/40" />
@@ -50,8 +56,58 @@ export default function Header() {
               </div>
             </form>
 
-            {/* Right: Actions */}
+            {/* Right: Desktop Actions */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Theme Switcher */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
+                  className="p-2 hover:bg-card/50 rounded-full transition-colors duration-200"
+                  title="Switch Theme"
+                >
+                  {isDarkTheme ? (
+                    <Moon className="w-5 h-5 text-foreground/60" />
+                  ) : (
+                    <Sun className="w-5 h-5 text-foreground/60" />
+                  )}
+                </button>
+
+                {isThemeDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsThemeDropdownOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/50 rounded-xl shadow-lg z-50 overflow-hidden animate-slideDown">
+                      <div className="p-3 border-b border-border/30">
+                        <h3 className="font-semibold text-sm text-foreground">Choose Theme</h3>
+                      </div>
+                      <div className="py-1">
+                        {themes.map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => { setTheme(t.id); setIsThemeDropdownOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
+                              theme === t.id
+                                ? 'bg-accent/10 text-accent'
+                                : 'text-foreground/80 hover:bg-background/50 hover:text-foreground'
+                            }`}
+                          >
+                            <div className="flex gap-1">
+                              {t.swatches.slice(0, 3).map((color, i) => (
+                                <div
+                                  key={i}
+                                  className="w-4 h-4 rounded-full border border-border/30"
+                                  style={{ backgroundColor: color }}
+                                />
+                              ))}
+                            </div>
+                            <span className="font-medium">{t.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
               {isLoggedIn && currentUser ? (
                 <>
                   {/* Create */}
@@ -182,10 +238,41 @@ export default function Header() {
               )}
             </div>
 
-            {/* Mobile menu toggle */}
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu" className="md:hidden p-2 hover:bg-card/50 rounded-lg transition-colors">
-              {isMenuOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
-            </button>
+            {/* Mobile: Right side controls */}
+            <div className="flex md:hidden items-center gap-1">
+              {/* Theme toggle (mobile) */}
+              <button
+                onClick={() => {
+                  // Quick toggle: warm ↔ crimson
+                  setTheme(isDarkTheme ? 'quiet-luxury' : 'crimson');
+                }}
+                className="p-2 hover:bg-card/50 rounded-full transition-colors"
+                title="Toggle Theme"
+              >
+                {isDarkTheme ? (
+                  <Moon className="w-5 h-5 text-foreground/60" />
+                ) : (
+                  <Sun className="w-5 h-5 text-foreground/60" />
+                )}
+              </button>
+
+              {/* Notification bell (mobile, logged in) */}
+              {isLoggedIn && currentUser && (
+                <Link href="/notifications" className="relative p-2 hover:bg-card/50 rounded-full transition-colors">
+                  <Bell className="w-5 h-5 text-foreground/60" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+
+              {/* Hamburger menu toggle */}
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu" className="p-2 hover:bg-card/50 rounded-lg transition-colors">
+                {isMenuOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
+              </button>
+            </div>
           </div>
 
           {/* Mobile dropdown */}

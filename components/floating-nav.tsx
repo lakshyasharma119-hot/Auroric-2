@@ -230,7 +230,7 @@ export default function FloatingNav() {
   return (
     <nav
       ref={navRef}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden md:flex"
       aria-label="Main navigation"
     >
       <motion.div

@@ -127,40 +127,40 @@ export default function PinCard({
 
           {/* Info */}
           {!compact ? (
-            <div className="p-3.5 flex flex-col gap-2">
-              <h3 className="font-semibold text-foreground/90 text-[13px] leading-snug line-clamp-2 group-hover:text-accent smooth-transition font-syne">
+            <div className="p-2.5 flex flex-col gap-1.5">
+              <h3 className="font-semibold text-foreground/90 text-xs leading-snug line-clamp-2 group-hover:text-accent smooth-transition font-syne">
                 {title}
               </h3>
 
               {boardData && (
-                <div className="text-[11px] text-foreground/40 flex items-center gap-1">
+                <div className="text-[10px] text-foreground/40 flex items-center gap-1">
                   <span className="w-1 h-1 rounded-full bg-accent/60" />
                   {boardData.name}
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between pt-0.5">
+                <div className="flex items-center gap-1.5">
                   {author && (
                     <>
                       <UserAvatar userId={author.id} displayName={author.displayName} size="sm" />
-                      <span className="text-[11px] text-foreground/50 truncate max-w-[100px]">{author.displayName}</span>
+                      <span className="text-[10px] text-foreground/50 truncate max-w-[80px]">{author.displayName}</span>
                     </>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2.5 text-[11px] text-foreground/40">
-                  <span className="flex items-center gap-1">
-                    <Heart className={`w-3 h-3 ${isLiked ? 'fill-red-500/70 text-red-500/70' : ''}`} />
+                <div className="flex items-center gap-2 text-[10px] text-foreground/40">
+                  <span className="flex items-center gap-0.5">
+                    <Heart className={`w-2.5 h-2.5 ${isLiked ? 'fill-red-500/70 text-red-500/70' : ''}`} />
                     {formatCount(likes.length)}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <MessageCircle className="w-3 h-3" />
+                  <span className="flex items-center gap-0.5">
+                    <MessageCircle className="w-2.5 h-2.5" />
                     {formatCount(comments.length)}
                   </span>
                   {views > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
+                    <span className="flex items-center gap-0.5">
+                      <Eye className="w-2.5 h-2.5" />
                       {formatCount(views)}
                     </span>
                   )}
@@ -169,14 +169,14 @@ export default function PinCard({
 
               {/* Relative time */}
               {createdAt && (
-                <div className="flex items-center gap-1 text-[10px] text-foreground/30">
-                  <Clock className="w-2.5 h-2.5" />
+                <div className="flex items-center gap-1 text-[9px] text-foreground/30">
+                  <Clock className="w-2 h-2" />
                   {timeAgo(createdAt)}
                 </div>
               )}
             </div>
           ) : (
-            <div className="p-2.5">
+            <div className="p-2">
               <h3 className="font-medium text-foreground/80 text-xs line-clamp-1 font-syne">
                 {title}
               </h3>

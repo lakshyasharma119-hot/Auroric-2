@@ -143,7 +143,7 @@ export default function ExplorePage() {
                   <p className="text-sm text-foreground/40">Try a different category, or be the first to upload a pin!</p>
                 </div>
               ) : viewMode === 'grid' ? (
-                <MasonryGrid columns={3}>
+                <MasonryGrid columns={4}>
                   {visiblePins.map((pin) => (
                     <PinCard
                       key={pin.id}

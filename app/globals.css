@@ -11,7 +11,50 @@
 
 @layer base {
   :root {
-    /* Auroric — Obsidian & Crimson (DEFAULT) */
+    /* Auroric — Quiet Luxury (DEFAULT: warm beige/cognac) */
+    --background: 43 27% 95%;
+    --foreground: 27 11% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 27 11% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 27 11% 16%;
+    --primary: 23 33% 41%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 21% 90%;
+    --secondary-foreground: 27 11% 16%;
+    --muted: 40 21% 90%;
+    --muted-foreground: 25 5% 41%;
+    --accent: 23 33% 41%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 30 16% 84%;
+    --input: 30 16% 84%;
+    --ring: 23 33% 41%;
+    --chart-1: 23 33% 41%;
+    --chart-2: 43 27% 95%;
+    --chart-3: 0 0% 100%;
+    --chart-4: 27 11% 16%;
+    --chart-5: 40 21% 90%;
+    --radius: 0.75rem;
+    /* Semantic tokens */
+    --glow: 23 33% 41%;
+    --surface: 0 0% 100%;
+    --surface-raised: 40 21% 90%;
+    /* Component-level tokens */
+    --accent-rgb: 138, 96, 70;
+    --accent-hsl-raw: 23 33% 41%;
+    --badge-paid-light: #A3765A;
+    --badge-paid-dark: #8A6046;
+    --nav-pill-border: rgba(45, 40, 36, 0.1);
+    --nav-pill-shadow: rgba(45, 40, 36, 0.05);
+    --blob-1: rgba(138, 96, 70, 0.15);
+    --blob-2: rgba(91, 138, 114, 0.12);
+    --botanical-color: rgba(45, 40, 36, 0.08);
+  }
+
+  /* ── Obsidian & Crimson Theme (Dark) ── */
+  [data-theme="crimson"] {
     --background: 220 14% 5%;
     --foreground: 40 10% 92%;
     --card: 220 12% 9%;
@@ -36,12 +79,9 @@
     --chart-3: 220 12% 30%;
     --chart-4: 340 65% 55%;
     --chart-5: 45 85% 60%;
-    --radius: 0.75rem;
-    /* Semantic tokens */
     --glow: 0 85% 55%;
     --surface: 220 12% 7%;
     --surface-raised: 220 12% 11%;
-    /* Component-level tokens (for hardcoded color references) */
     --accent-rgb: 239, 68, 68;
     --accent-hsl-raw: 0 85% 55%;
     --badge-paid-light: #f87171;
@@ -82,7 +122,6 @@
     --glow: 349 84% 38%;
     --surface: 0 100% 9%;
     --surface-raised: 0 100% 13%;
-    /* Component-level tokens */
     --accent-rgb: 177, 15, 46;
     --accent-hsl-raw: 349 84% 38%;
     --badge-paid-light: #DE7C5A;
@@ -92,47 +131,6 @@
     --blob-1: rgba(222, 124, 90, 0.18);
     --blob-2: rgba(87, 0, 0, 0.2);
     --botanical-color: rgba(253, 255, 255, 0.06);
-  }
-
-  /* ── Quiet Luxury Theme (Light) ── */
-  [data-theme="quiet-luxury"] {
-    --background: 43 27% 95%;
-    --foreground: 27 11% 16%;
-    --card: 0 0% 100%;
-    --card-foreground: 27 11% 16%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 27 11% 16%;
-    --primary: 23 33% 41%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 40 21% 90%;
-    --secondary-foreground: 27 11% 16%;
-    --muted: 40 21% 90%;
-    --muted-foreground: 25 5% 41%;
-    --accent: 23 33% 41%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 30 16% 84%;
-    --input: 30 16% 84%;
-    --ring: 23 33% 41%;
-    --chart-1: 23 33% 41%;
-    --chart-2: 43 27% 95%;
-    --chart-3: 0 0% 100%;
-    --chart-4: 27 11% 16%;
-    --chart-5: 40 21% 90%;
-    --glow: 23 33% 41%;
-    --surface: 0 0% 100%;
-    --surface-raised: 40 21% 90%;
-    /* Component-level tokens */
-    --accent-rgb: 138, 96, 70;
-    --accent-hsl-raw: 23 33% 41%;
-    --badge-paid-light: #A3765A;
-    --badge-paid-dark: #8A6046;
-    --nav-pill-border: rgba(45, 40, 36, 0.1);
-    --nav-pill-shadow: rgba(45, 40, 36, 0.05);
-    --blob-1: rgba(138, 96, 70, 0.15);
-    --blob-2: rgba(91, 138, 114, 0.12);
-    --botanical-color: rgba(45, 40, 36, 0.08);
   }
 
   /* ── Modern Editorial Theme (Dark) ── */
@@ -164,7 +162,6 @@
     --glow: 150 21% 45%;
     --surface: 215 21% 11%;
     --surface-raised: 215 15% 15%;
-    /* Component-level tokens */
     --accent-rgb: 91, 138, 114;
     --accent-hsl-raw: 150 21% 45%;
     --badge-paid-light: #77A68E;
@@ -425,7 +422,13 @@
 
 /* Bottom padding so content isn't hidden behind the fixed nav */
 body {
-  padding-bottom: 88px;
+  padding-bottom: 72px;
+}
+
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 88px;
+  }
 }
 
 .floating-nav-pill {

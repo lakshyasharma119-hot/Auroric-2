@@ -70,15 +70,15 @@ export default function Home() {
 
       {/* Hero — editorial, atmospheric */}
       <section className="w-full relative overflow-hidden bg-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-10 pb-24 lg:pt-16 lg:pb-32">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="flex flex-col gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-6 pb-12 lg:pt-8 lg:pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="flex flex-col gap-6">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-8 rounded-full bg-accent" />
                 <span className="text-sm font-medium text-accent tracking-wide uppercase mono">Curate · Create · Discover</span>
               </div>
 
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1] tracking-tight cursor-default flex flex-col items-start gap-1">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight cursor-default flex flex-col items-start gap-1">
                 <div><AnimatedText text="Your visual" /></div>
                 <div>
                   <AnimatedText text="universe" className="gradient-brand" />
@@ -87,12 +87,12 @@ export default function Home() {
                 <div><AnimatedText text="organized." /></div>
               </h1>
 
-              <p className="text-lg text-foreground/55 max-w-lg leading-relaxed">
+              <p className="text-base sm:text-lg text-foreground/55 max-w-lg leading-relaxed">
                 Collect ideas that inspire you. Build boards that tell stories.
                 Share what moves you with a community that gets it.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {isLoggedIn ? (
                   <>
                     <Link href="/create" className="luxury-button flex items-center justify-center gap-2.5">
@@ -126,7 +126,7 @@ export default function Home() {
       {/* Category Pills */}
       <div className="w-full border-b border-border/30 bg-background/80 backdrop-blur-sm sticky top-16 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 py-3 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-2 py-2.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveCategory(null)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap smooth-transition ${!activeCategory
@@ -153,12 +153,12 @@ export default function Home() {
       </div>
 
       {/* Feed */}
-      <main className="flex-1 w-full py-12">
+      <main className="flex-1 w-full py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div className="flex items-center gap-3">
               <Flame className="w-5 h-5 text-accent" />
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-xl sm:text-2xl font-bold">
                 {isLoggedIn && currentUser
                   ? `Welcome back, ${currentUser.displayName.split(' ')[0]}`
                   : 'Staff Picks'}
@@ -187,47 +187,25 @@ export default function Home() {
               )}
             </div>
           ) : (
-            <>
-              <div className="hidden sm:block">
-                <MasonryGrid columns={3}>
-                  {feedPins.map((pin) => (
-                    <PinCard
-                      key={pin.id}
-                      id={pin.id}
-                      title={pin.title}
-                      description={pin.description}
-                      imageUrl={pin.imageUrl}
-                      authorId={pin.authorId}
-                      likes={pin.likes}
-                      saves={pin.saves}
-                      comments={pin.comments}
-                      board={pin.boardId}
-                      views={pin.views}
-                      createdAt={pin.createdAt}
-                     aspectRatio={pin.aspectRatio} />
-                  ))}
-                </MasonryGrid>
-              </div>
-              <div className="sm:hidden grid grid-cols-2 gap-3">
-                {feedPins.map((pin) => (
-                  <PinCard
-                    key={pin.id}
-                    id={pin.id}
-                    title={pin.title}
-                    description={pin.description}
-                    imageUrl={pin.imageUrl}
-                    authorId={pin.authorId}
-                    likes={pin.likes}
-                    saves={pin.saves}
-                    comments={pin.comments}
-                    board={pin.boardId}
-                    views={pin.views}
-                    createdAt={pin.createdAt}
-                    compact
-                   aspectRatio={pin.aspectRatio} />
-                ))}
-              </div>
-            </>
+            <MasonryGrid columns={4}>
+              {feedPins.map((pin) => (
+                <PinCard
+                  key={pin.id}
+                  id={pin.id}
+                  title={pin.title}
+                  description={pin.description}
+                  imageUrl={pin.imageUrl}
+                  authorId={pin.authorId}
+                  likes={pin.likes}
+                  saves={pin.saves}
+                  comments={pin.comments}
+                  board={pin.boardId}
+                  views={pin.views}
+                  createdAt={pin.createdAt}
+                  aspectRatio={pin.aspectRatio}
+                />
+              ))}
+            </MasonryGrid>
           )}
 
           {visibleCount < pins.filter(p => !p.isPrivate && (!activeCategory || p.category === activeCategory)).length && (

@@ -4,6 +4,7 @@ import { AppProvider } from '@/lib/app-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import AuthSessionProvider from '@/components/session-provider'
 import FloatingNav from '@/components/floating-nav'
+import MobileBottomNav from '@/components/mobile-bottom-nav'
 
 import './globals.css'
 
@@ -27,7 +28,7 @@ const themeScript = `
 (function(){
   try {
     var t = localStorage.getItem('auroric-theme');
-    if (t && t !== 'crimson') document.documentElement.setAttribute('data-theme', t);
+    if (t && t !== 'quiet-luxury') document.documentElement.setAttribute('data-theme', t);
   } catch(e){}
 })();
 `;
@@ -48,6 +49,7 @@ export default function RootLayout({
             <AppProvider>
               {children}
               <FloatingNav />
+              <MobileBottomNav />
             </AppProvider>
           </ThemeProvider>
         </AuthSessionProvider>

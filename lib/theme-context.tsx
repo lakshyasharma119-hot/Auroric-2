@@ -49,7 +49,7 @@ const ThemeContext = createContext<ThemeContextType | null>(null);
 const STORAGE_KEY = 'auroric-theme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>('crimson');
+  const [theme, setThemeState] = useState<ThemeId>('quiet-luxury');
 
   // Read from localStorage on mount
   useEffect(() => {
@@ -75,7 +75,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 function applyTheme(theme: ThemeId) {
   const root = document.documentElement;
-  if (theme === 'crimson') {
+  if (theme === 'quiet-luxury') {
     root.removeAttribute('data-theme');
   } else {
     root.setAttribute('data-theme', theme);
@@ -85,7 +85,7 @@ function applyTheme(theme: ThemeId) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    return { theme: 'crimson' as ThemeId, setTheme: () => {}, themes: THEMES };
+    return { theme: 'quiet-luxury' as ThemeId, setTheme: () => {}, themes: THEMES };
   }
   return context;
 }
