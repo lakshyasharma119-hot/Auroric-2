@@ -1,0 +1,10 @@
+{
+  "name": "e2ee-message-reaper",
+  "version": "1.0.0",
+  "description": "Appwrite function to delete expired messages for standard users",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}

@@ -54,6 +54,8 @@ interface AppContextType {
   // Notifications
   notifications: Notification[];
   unreadCount: number;
+  unreadMessagesCount: number;
+  setUnreadMessagesCount: (count: number) => void;
   markNotificationRead: (id: string) => void;
   markAllRead: () => void;
 
@@ -75,6 +77,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [ready, setReady] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
@@ -177,7 +180,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Load notifications when user changes
   useEffect(() => {
-    if (currentUser) loadNotifications();
+    if (currentUser) {
+       loadNotifications();
+       import('@/hooks/useE2EERelay').then(mod => {
+          mod.getGlobalUnreadCount(currentUser.id).then(count => setUnreadMessagesCount(count));
+       }).catch(console.error);
+    }
   }, [currentUser, loadNotifications]);
 
   const refresh = useCallback(() => { loadData(); }, [loadData]);
@@ -506,6 +514,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     notifications,
     unreadCount: notifications.filter(n => !n.read).length,
+    unreadMessagesCount,
+    setUnreadMessagesCount,
     markNotificationRead: (id) => {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
       api.markRead(id).catch(console.error);
@@ -621,6 +631,8 @@ const defaultContext: AppContextType = {
   searchBoards: noopArray,
   notifications: [],
   unreadCount: 0,
+  unreadMessagesCount: 0,
+  setUnreadMessagesCount: noop,
   markNotificationRead: noop,
   markAllRead: noop,
   refresh: noop,

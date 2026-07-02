@@ -1,4 +1,4 @@
-import type { User, Pin, Board, Notification, Comment, PaginatedResult, Conversation, Message } from './types';
+import type { User, Pin, Board, Notification, Comment, PaginatedResult } from './types';
 
 const BASE = '';
 
@@ -197,16 +197,6 @@ export const api = {
     }),
 
   // ============ MESSAGES & DM ============
-  getConversations: () => fetchJson<Conversation[]>('/api/messages'),
-
-  sendMessage: (recipientId: string, text: string) =>
-    fetchJson<{ message: Message; conversationId: string }>('/api/messages', {
-      method: 'POST',
-      body: JSON.stringify({ recipientId, text }),
-    }),
-
-  getMessages: (conversationId: string) =>
-    fetchJson<Message[]>(`/api/messages/${conversationId}`),
 
   getChatStorage: () =>
     fetchJson<{ usedBytes: number; limitBytes: number; percentage: number; isVerified: boolean }>(

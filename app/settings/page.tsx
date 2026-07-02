@@ -9,13 +9,13 @@ import UserAvatar from '@/components/user-avatar';
 import ProfilePictureUpload from '@/components/profile-picture-upload';
 import { Save, Bell, Lock, Palette, LogOut, Check, Shield, User, Trash2, KeyRound, AlertTriangle, Globe, Camera } from 'lucide-react';
 import { useApp } from '@/lib/app-context';
-import { useTheme } from '@/lib/theme-context';
+import { useTheme, THEMES } from '@/lib/theme-context';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api-client';
 
 export default function SettingsPage() {
   const { currentUser, isLoggedIn, updateProfile, logout, openAuthModal } = useApp();
-  const { theme: currentTheme, setTheme: setAppTheme, themes } = useTheme();
+  const { themeId: currentThemeId, setTheme: setAppTheme } = useTheme();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<'account' | 'profile' | 'privacy' | 'notifications' | 'appearance' | 'storage' | 'security'>('account');
   const [saved, setSaved] = useState(false);
@@ -519,18 +519,18 @@ export default function SettingsPage() {
                     Choose a theme that suits your style. Changes apply instantly.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {themes.map(t => (
+                    {Object.values(THEMES).map(t => (
                       <button
                         key={t.id}
                         onClick={() => setAppTheme(t.id)}
                         className={`group relative p-5 rounded-xl border-2 smooth-transition text-left cursor-pointer ${
-                          currentTheme === t.id
+                          currentThemeId === t.id
                             ? 'border-accent bg-accent/10 shadow-[0_0_20px_hsl(var(--glow)/0.15)]'
                             : 'border-border/30 hover:border-border/60 hover:bg-card/50'
                         }`}
                       >
                         {/* Active badge */}
-                        {currentTheme === t.id && (
+                        {currentThemeId === t.id && (
                           <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-accent flex items-center justify-center">
                             <Check className="w-3.5 h-3.5 text-accent-foreground" />
                           </div>
@@ -538,7 +538,7 @@ export default function SettingsPage() {
 
                         {/* Swatch row */}
                         <div className="flex gap-1.5 mb-3">
-                          {t.swatches.map((color, i) => (
+                          {t.swatch.map((color, i) => (
                             <div
                               key={i}
                               className="w-7 h-7 rounded-full border border-white/10 shadow-sm"
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                         </div>
 
                         {/* Text */}
-                        <p className="font-semibold text-foreground text-sm">{t.name}</p>
+                        <p className="font-semibold text-foreground text-sm">{t.label}</p>
                         <p className="text-xs text-foreground/50 mt-0.5">{t.description}</p>
                       </button>
                     ))}

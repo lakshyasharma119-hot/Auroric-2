@@ -3,31 +3,39 @@
 import React, { useState, useRef } from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import { Upload, Image as ImageIcon, Link as LinkIcon, X, CheckCircle } from 'lucide-react';
+import { Upload, Image as ImageIcon, Link as LinkIcon, X, CheckCircle, Crop } from 'lucide-react';
 import { useApp } from '@/lib/app-context';
 import { useRouter } from 'next/navigation';
 import { CATEGORIES } from '@/lib/types';
+import { ASPECT_RATIOS } from '@/lib/constants/aspectRatios';
+import type { AspectRatioId } from '@/lib/constants/aspectRatios';
+import UploadFlowModal from '@/components/upload/UploadFlowModal';
+import type { UploadFlowResult } from '@/components/upload/UploadFlowModal';
 
-const PRE_APPROVED_RATIOS = [
-  { label: 'Square (1:1)', value: '1/1' },
-  { label: 'Landscape (3:2)', value: '3/2' },
-  { label: 'Portrait (2:3)', value: '2/3' },
-  { label: 'Classic (4:3)', value: '4/3' },
-  { label: 'Classic Port. (3:4)', value: '3/4' },
-  { label: 'Vertical (9:16)', value: '9/16' },
-  { label: 'Widescreen (16:9)', value: '16/9' },
-];
+// ── Page-level state: tracks the overall create flow ──
+// The image selection/crop/ratio sub-flow is handled entirely by UploadFlowModal.
+// This page manages: source selection, details form, and final submission.
+type PageStep = 'source_select' | 'details' | 'uploading' | 'done' | 'error';
 
 export default function CreatePinPage() {
   const { currentUser, isLoggedIn, boards, createPin, createBoard, openAuthModal } = useApp();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<'source' | 'details' | 'success'>('source');
+
+  const [pageStep, setPageStep] = useState<PageStep>('source_select');
   const [sourceType, setSourceType] = useState<'upload' | 'url' | null>(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // Upload flow modal state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Image state (populated by UploadFlowModal for uploads, or by URL input)
+  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
+  const [croppedPreviewUrl, setCroppedPreviewUrl] = useState('');
+  const [selectedRatio, setSelectedRatio] = useState<AspectRatioId | null>(null);
+
+  // Form state
   const [createdPinId, setCreatedPinId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -37,7 +45,6 @@ export default function CreatePinPage() {
     tags: '',
     category: 'All' as string,
     isPrivate: false,
-    aspectRatio: '',
   });
 
   if (!isLoggedIn) {
@@ -67,19 +74,29 @@ export default function CreatePinPage() {
   const handleSourceSelect = (type: 'upload' | 'url') => {
     setSourceType(type);
     if (type === 'upload') {
-      fileInputRef.current?.click();
+      // Open the UploadFlowModal — it handles file select → ratio → crop
+      setShowUploadModal(true);
     } else {
-      setStep('details');
+      // URL-based uploads skip the crop flow — user provides a link
+      setPageStep('details');
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setFormData(prev => ({ ...prev, imageUrl: '__file__' }));
-    setStep('details');
+  // Called when UploadFlowModal completes the crop flow
+  const handleUploadFlowComplete = (result: UploadFlowResult) => {
+    setCroppedBlob(result.croppedBlob);
+    setCroppedPreviewUrl(result.croppedPreviewUrl);
+    setSelectedRatio(result.aspectRatioId);
+    setShowUploadModal(false);
+    setPageStep('details');
+  };
+
+  const handleUploadModalClose = () => {
+    setShowUploadModal(false);
+    // If user hasn't completed the flow, go back to source selection
+    if (!croppedBlob) {
+      setSourceType(null);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -92,16 +109,42 @@ export default function CreatePinPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || (!formData.imageUrl && !imageFile)) return;
+    if (!formData.title) return;
+
+    // Validation guard: aspectRatioId must be set for uploaded images
+    if (sourceType === 'upload') {
+      if (!selectedRatio || !ASPECT_RATIOS[selectedRatio]) {
+        setErrorMessage('Aspect ratio is required. Please go back and select one.');
+        setPageStep('error');
+        return;
+      }
+      if (!croppedBlob) {
+        setErrorMessage('Image crop is required. Please go back and crop your image.');
+        setPageStep('error');
+        return;
+      }
+    }
+
     setSubmitting(true);
+    setPageStep('uploading');
 
     try {
-      // Upload file if needed
       let imageUrl = formData.imageUrl;
-      if (imageFile) {
+
+      if (sourceType === 'upload' && croppedBlob) {
+        // Upload ONLY the cropped output
         const { api } = await import('@/lib/api-client');
-        const { url } = await api.uploadFile(imageFile);
+        const croppedFile = new File(
+          [croppedBlob],
+          `cropped-${Date.now()}.webp`,
+          { type: croppedBlob.type || 'image/webp' },
+        );
+        const { url } = await api.uploadFile(croppedFile);
         imageUrl = url;
+      }
+
+      if (!imageUrl) {
+        throw new Error('No image provided');
       }
 
       let boardId = formData.board;
@@ -126,35 +169,56 @@ export default function CreatePinPage() {
         boardId: boardId || undefined,
         tags,
         category: formData.category,
-        aspectRatio: formData.aspectRatio,
+        // Use typed aspect ratio ID for uploaded images
+        aspectRatioId: selectedRatio || undefined,
+        // Keep legacy field for URL-sourced images (no crop)
+        aspectRatio: sourceType === 'url' ? undefined : undefined,
         isPrivate: formData.isPrivate,
         views: 0,
       });
 
       setCreatedPinId(newPin.id);
-      setStep('success');
-    } catch (err) {
+      setPageStep('done');
+    } catch (err: any) {
       console.error('Failed to create pin:', err);
+      setErrorMessage(err.message || 'Something went wrong');
+      setPageStep('error');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const resetAll = () => {
+    setPageStep('source_select');
+    setSourceType(null);
+    setCroppedBlob(null);
+    setCroppedPreviewUrl('');
+    setSelectedRatio(null);
+    setCreatedPinId('');
+    setErrorMessage('');
+    setShowUploadModal(false);
+    setFormData({
+      title: '', description: '', imageUrl: '', board: '',
+      newBoardName: '', tags: '', category: 'All', isPrivate: false,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*"
-        onChange={handleFileChange}
-        aria-label="Upload image"
+
+      {/* UploadFlowModal — handles file select → ratio → crop as an isolated state machine */}
+      <UploadFlowModal
+        open={showUploadModal}
+        onClose={handleUploadModalClose}
+        onComplete={handleUploadFlowComplete}
       />
 
       <main className="flex-1 w-full py-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          {step === 'source' && (
+
+          {/* ── Source selection ── */}
+          {pageStep === 'source_select' && (
             <div className="animate-slideUp">
               <h1 className="text-4xl font-bold mb-8 text-center">Create a New Pin</h1>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -183,29 +247,43 @@ export default function CreatePinPage() {
             </div>
           )}
 
-          {step === 'details' && (
+          {/* ── Details form ── */}
+          {pageStep === 'details' && (
             <form onSubmit={handleSubmit} className="animate-slideUp">
               <div className="flex items-center gap-4 mb-8">
-                <button type="button" onClick={() => { setStep('source'); setPreviewUrl(''); }} className="text-foreground/60 hover:text-foreground smooth-transition">← Back</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sourceType === 'upload') {
+                      // Re-open the upload modal so user can redo crop
+                      setShowUploadModal(true);
+                    } else {
+                      resetAll();
+                    }
+                  }}
+                  className="text-foreground/60 hover:text-foreground smooth-transition"
+                >
+                  ← Back
+                </button>
                 <h1 className="text-3xl font-bold">Pin Details</h1>
               </div>
 
-              {(previewUrl || formData.imageUrl) && (
+              {/* Cropped image preview */}
+              {croppedPreviewUrl && (
                 <div className="mb-8 rounded-2xl overflow-hidden bg-card/30 border border-border/30">
-                  <img src={previewUrl || formData.imageUrl} alt="Preview" className="w-full max-h-80 object-cover" />
+                  <div className="relative">
+                    <img src={croppedPreviewUrl} alt="Cropped preview" className="w-full max-h-80 object-cover" />
+                    {selectedRatio && (
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 text-white text-xs backdrop-blur-sm">
+                        <Crop className="w-3 h-3" />
+                        {ASPECT_RATIOS[selectedRatio].shortLabel}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {sourceType === 'upload' && !previewUrl && (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mb-8 border-2 border-dashed border-border/50 rounded-2xl p-8 text-center hover:border-accent/50 smooth-transition cursor-pointer bg-card/20"
-                >
-                  <ImageIcon className="w-12 h-12 text-foreground/40 mx-auto mb-4" />
-                  <p className="text-foreground/60 mb-2">Click to select a file</p>
-                </div>
-              )}
-
+              {/* URL input (for URL source) */}
               {sourceType === 'url' && (
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-foreground mb-2">Image URL</label>
@@ -214,10 +292,7 @@ export default function CreatePinPage() {
                     name="imageUrl"
                     placeholder="https://example.com/image.jpg"
                     value={formData.imageUrl}
-                    onChange={(e) => {
-                      handleInputChange(e);
-                      setPreviewUrl(e.target.value);
-                    }}
+                    onChange={handleInputChange}
                     className="w-full bg-card/50 border border-border/30 rounded-lg px-4 py-2 text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 smooth-transition"
                   />
                 </div>
@@ -227,23 +302,6 @@ export default function CreatePinPage() {
                 <label className="block text-sm font-semibold text-foreground mb-2">Pin Title *</label>
                 <input type="text" name="title" placeholder="Give your pin a title" value={formData.title} onChange={handleInputChange} required
                   className="w-full bg-card/50 border border-border/30 rounded-lg px-4 py-2 text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 smooth-transition" />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-foreground mb-1">Aspect Ratio *</label>
-                <p className="text-xs text-foreground/50 mb-3">Select an aspect ratio for optimal feed presentation.</p>
-                <div className="flex flex-wrap gap-2">
-                  {PRE_APPROVED_RATIOS.map(ratio => (
-                    <button
-                      key={ratio.value}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, aspectRatio: ratio.value })}
-                      className={`px-4 py-2 rounded-lg border text-sm font-medium smooth-transition ${formData.aspectRatio === ratio.value ? 'bg-accent border-accent text-accent-foreground' : 'bg-card/50 border-border/30 hover:border-accent/50 text-foreground/70 hover:text-foreground'}`}
-                    >
-                      {ratio.label}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="mb-6">
@@ -288,13 +346,29 @@ export default function CreatePinPage() {
                 <label htmlFor="private" className="text-sm text-foreground/70 cursor-pointer">Keep this pin private</label>
               </div>
 
-              <button type="submit" className="luxury-button w-full disabled:opacity-50 disabled:cursor-not-allowed" disabled={submitting || !formData.title || (!previewUrl && !formData.imageUrl) || !formData.aspectRatio}>
+              <button
+                type="submit"
+                className="luxury-button w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting || !formData.title || (sourceType === 'upload' ? !croppedBlob : !formData.imageUrl)}
+              >
                 {submitting ? 'Publishing...' : 'Publish Pin'}
               </button>
             </form>
           )}
 
-          {step === 'success' && (
+          {/* ── Uploading ── */}
+          {pageStep === 'uploading' && (
+            <div className="animate-slideUp flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-6 p-4 rounded-full bg-accent/10 animate-pulse">
+                <Upload className="w-12 h-12 text-accent" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Uploading...</h2>
+              <p className="text-foreground/60">Your pin is being published to Auroric.</p>
+            </div>
+          )}
+
+          {/* ── Success ── */}
+          {pageStep === 'done' && (
             <div className="animate-slideUp flex flex-col items-center justify-center py-16 text-center">
               <div className="mb-6 p-4 rounded-full bg-accent/20">
                 <CheckCircle className="w-16 h-16 text-accent" />
@@ -303,11 +377,25 @@ export default function CreatePinPage() {
               <p className="text-xl text-foreground/70 mb-8 max-w-md">Your pin is now live on Auroric.</p>
               <div className="flex gap-4">
                 <button onClick={() => router.push(`/pin/${createdPinId}`)} className="luxury-button">View Pin</button>
-                <button onClick={() => { setStep('source'); setSourceType(null); setPreviewUrl(''); setImageFile(null); setFormData({ title: '', description: '', imageUrl: '', board: '', newBoardName: '', tags: '', category: 'All', isPrivate: false, aspectRatio: '' }); }}
-                  className="luxury-button-outline flex items-center gap-2"><Upload className="w-5 h-5" /> Create Another</button>
+                <button onClick={resetAll} className="luxury-button-outline flex items-center gap-2">
+                  <Upload className="w-5 h-5" /> Create Another
+                </button>
               </div>
             </div>
           )}
+
+          {/* ── Error ── */}
+          {pageStep === 'error' && (
+            <div className="animate-slideUp flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-6 p-4 rounded-full bg-destructive/20">
+                <X className="w-12 h-12 text-destructive" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
+              <p className="text-foreground/60 mb-8 max-w-md">{errorMessage || 'Please try again.'}</p>
+              <button onClick={resetAll} className="luxury-button-outline">Start Over</button>
+            </div>
+          )}
+
         </div>
       </main>
 

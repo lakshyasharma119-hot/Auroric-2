@@ -10,7 +10,7 @@
    ═══════════════════════════════════════════════════════ */
 
 @layer base {
-  :root {
+  :root, [data-theme="quiet_luxury"] {
     /* Auroric — Quiet Luxury (DEFAULT: warm beige/cognac) */
     --background: 43 27% 95%;
     --foreground: 27 11% 16%;
@@ -51,10 +51,11 @@
     --blob-1: rgba(138, 96, 70, 0.15);
     --blob-2: rgba(91, 138, 114, 0.12);
     --botanical-color: rgba(45, 40, 36, 0.08);
+    --navbar: 43 27% 95%;
   }
 
   /* ── Obsidian & Crimson Theme (Dark) ── */
-  [data-theme="crimson"] {
+  [data-theme="obsidian_crimson"] {
     --background: 220 14% 5%;
     --foreground: 40 10% 92%;
     --card: 220 12% 9%;
@@ -91,10 +92,11 @@
     --blob-1: rgba(239, 68, 68, 0.12);
     --blob-2: rgba(87, 0, 0, 0.15);
     --botanical-color: rgba(255, 255, 255, 0.06);
+    --navbar: 220 14% 5%;
   }
 
   /* ── Fiery Sunset Theme ── */
-  [data-theme="fiery-sunset"] {
+  [data-theme="fiery_sunset"] {
     --background: 0 100% 8%;
     --foreground: 180 100% 99%;
     --card: 0 100% 11%;
@@ -131,10 +133,11 @@
     --blob-1: rgba(222, 124, 90, 0.18);
     --blob-2: rgba(87, 0, 0, 0.2);
     --botanical-color: rgba(253, 255, 255, 0.06);
+    --navbar: 0 100% 8%;
   }
 
   /* ── Modern Editorial Theme (Dark) ── */
-  [data-theme="modern-editorial"] {
+  [data-theme="modern_editorial"] {
     --background: 216 28% 7%;
     --foreground: 212 33% 93%;
     --card: 215 21% 11%;
@@ -171,6 +174,89 @@
     --blob-1: rgba(91, 138, 114, 0.12);
     --blob-2: rgba(48, 54, 61, 0.2);
     --botanical-color: rgba(230, 237, 243, 0.05);
+    --navbar: 216 28% 7%;
+  }
+
+  /* ── Standard Dark Theme ── */
+  [data-theme="standard_dark"] {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 0 0% 98%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 0 0% 98%;
+    --chart-2: 0 0% 80%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 40%;
+    --chart-5: 0 0% 20%;
+    --glow: 0 0% 98%;
+    --surface: 0 0% 6%;
+    --surface-raised: 0 0% 10%;
+    --accent-rgb: 255, 255, 255;
+    --accent-hsl-raw: 0 0% 98%;
+    --badge-paid-light: #e5e5e5;
+    --badge-paid-dark: #a3a3a3;
+    --nav-pill-border: rgba(255, 255, 255, 0.1);
+    --nav-pill-shadow: rgba(0, 0, 0, 0.4);
+    --blob-1: rgba(255, 255, 255, 0.05);
+    --blob-2: rgba(200, 200, 200, 0.05);
+    --botanical-color: rgba(255, 255, 255, 0.03);
+    --navbar: 0 0% 4%;
+  }
+
+  /* ── Standard Light Theme ── */
+  [data-theme="standard_light"] {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 9%;
+    --chart-1: 0 0% 9%;
+    --chart-2: 0 0% 30%;
+    --chart-3: 0 0% 50%;
+    --chart-4: 0 0% 70%;
+    --chart-5: 0 0% 90%;
+    --glow: 0 0% 9%;
+    --surface: 0 0% 98%;
+    --surface-raised: 0 0% 94%;
+    --accent-rgb: 0, 0, 0;
+    --accent-hsl-raw: 0 0% 9%;
+    --badge-paid-light: #525252;
+    --badge-paid-dark: #262626;
+    --nav-pill-border: rgba(0, 0, 0, 0.1);
+    --nav-pill-shadow: rgba(0, 0, 0, 0.05);
+    --blob-1: rgba(0, 0, 0, 0.03);
+    --blob-2: rgba(0, 0, 0, 0.02);
+    --botanical-color: rgba(0, 0, 0, 0.02);
+    --navbar: 0 0% 100%;
   }
 }
 

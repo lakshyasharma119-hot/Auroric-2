@@ -187,6 +187,20 @@ async function storePrivateKeyInIndexedDB(privateKey: CryptoKey): Promise<void> 
       request.onsuccess = async () => {
         try {
           const db = request.result;
+
+          // Handle corrupt state: DB exists but store was never created
+          if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+            db.close();
+            // Delete and re-create the database
+            const deleteReq = indexedDB.deleteDatabase(IDB_DB_NAME);
+            deleteReq.onsuccess = () => {
+              // Re-open which will trigger onupgradeneeded
+              storePrivateKeyInIndexedDB(privateKey).then(resolve, reject);
+            };
+            deleteReq.onerror = () => reject(new Error('Failed to reset IndexedDB'));
+            return;
+          }
+
           const jwk = await crypto.subtle.exportKey('jwk', privateKey);
           const transaction = db.transaction(IDB_STORE_NAME, 'readwrite');
           const store = transaction.objectStore(IDB_STORE_NAME);
@@ -220,9 +234,23 @@ async function getPrivateKeyFromIndexedDB(): Promise<CryptoKey | null> {
 
       request.onerror = () => reject(new Error('IndexedDB open failed'));
 
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+          db.createObjectStore(IDB_STORE_NAME);
+        }
+      };
+
       request.onsuccess = async () => {
         try {
           const db = request.result;
+
+          // If the store doesn't exist yet, no key has been stored
+          if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+            resolve(null);
+            return;
+          }
+
           const transaction = db.transaction(IDB_STORE_NAME, 'readonly');
           const store = transaction.objectStore(IDB_STORE_NAME);
           const keyRequest = store.get(STORAGE_KEY_PRIVATE);

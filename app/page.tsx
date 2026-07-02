@@ -4,12 +4,14 @@ import React, { useState, useMemo } from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import PinCard from '@/components/pin-card';
-import MasonryGrid from '@/components/masonry-grid';
+import { TypedMasonryGrid } from '@/components/masonry-grid';
+import type { MasonryItem } from '@/components/masonry-grid';
 import AntiGravityGallery from '@/components/anti-gravity-gallery';
 import OrganicBlobs from '@/components/organic-blobs';
 import { ArrowRight, Flame, Compass, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/lib/app-context';
+import type { Pin } from '@/lib/types';
 import { motion } from 'framer-motion';
 
 const AnimatedLetter = ({ char }: { char: string }) => {
@@ -18,10 +20,10 @@ const AnimatedLetter = ({ char }: { char: string }) => {
       className="inline-block relative origin-center"
       whileHover={{ 
         scale: 1.3, 
-        WebkitTextFillColor: 'hsl(var(--accent))',
+        color: 'hsl(var(--accent))',
         textShadow: '0px 0px 20px hsl(var(--accent) / 0.6)',
         zIndex: 10,
-      }}
+      } as any}
       whileTap={{ scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 300, damping: 10 }}
     >
@@ -51,14 +53,21 @@ export default function Home() {
     return Array.from(cats).slice(0, 8);
   }, [pins]);
 
+  // Sort by engagement score (pre-computed at write time) with fallback
+  // to the old likes+saves+comments heuristic for legacy data.
   const feedPins = useMemo(() => {
     let filtered = pins.filter(p => !p.isPrivate);
     if (activeCategory) filtered = filtered.filter(p => p.category === activeCategory);
-    return filtered.slice(0, visibleCount);
+    return filtered
+      .sort((a, b) => (b.engagementScore ?? 0) - (a.engagementScore ?? 0))
+      .slice(0, Math.min(visibleCount, 50)); // HARD CAP of 50 per spec
   }, [pins, visibleCount, activeCategory]);
 
   const topTrendingPins = useMemo(() => {
-    return [...pins].filter(p => !p.isPrivate).sort((a, b) => b.likes.length - a.likes.length).slice(0, 10);
+    return [...pins]
+      .filter(p => !p.isPrivate)
+      .sort((a, b) => (b.engagementScore ?? 0) - (a.engagementScore ?? 0))
+      .slice(0, 10);
   }, [pins]);
 
   const loadMore = () => setVisibleCount(prev => prev + 12);
@@ -187,25 +196,28 @@ export default function Home() {
               )}
             </div>
           ) : (
-            <MasonryGrid columns={4}>
-              {feedPins.map((pin) => (
+            <TypedMasonryGrid
+              items={feedPins}
+              columns={{ base: 1, sm: 2, md: 3, lg: 4, xl: 4 }}
+              renderCard={(photo, columnWidth) => (
                 <PinCard
-                  key={pin.id}
-                  id={pin.id}
-                  title={pin.title}
-                  description={pin.description}
-                  imageUrl={pin.imageUrl}
-                  authorId={pin.authorId}
-                  likes={pin.likes}
-                  saves={pin.saves}
-                  comments={pin.comments}
-                  board={pin.boardId}
-                  views={pin.views}
-                  createdAt={pin.createdAt}
-                  aspectRatio={pin.aspectRatio}
+                  key={photo.id}
+                  id={photo.id}
+                  title={photo.title}
+                  description={photo.description}
+                  imageUrl={photo.imageUrl}
+                  authorId={photo.authorId}
+                  likes={photo.likes}
+                  saves={photo.saves}
+                  comments={photo.comments}
+                  board={photo.boardId}
+                  views={photo.views}
+                  createdAt={photo.createdAt}
+                  aspectRatioId={photo.aspectRatioId}
+                  columnWidth={columnWidth}
                 />
-              ))}
-            </MasonryGrid>
+              )}
+            />
           )}
 
           {visibleCount < pins.filter(p => !p.isPrivate && (!activeCategory || p.category === activeCategory)).length && (

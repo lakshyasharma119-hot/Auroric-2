@@ -1,23 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, X, Menu, Bell, Settings, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
+import { Search, Plus, X, Menu, Bell, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useApp } from '@/lib/app-context';
 import { useTheme } from '@/lib/theme-context';
 import UserAvatar from '@/components/user-avatar';
 import AuthModal from '@/components/auth-modal';
+import { ThemeToggle } from '@/components/nav/ThemeToggle';
 
 export default function Header() {
   const router = useRouter();
   const { currentUser, isLoggedIn, openAuthModal, showAuthModal, authModalMode, closeAuthModal, logout, unreadCount } = useApp();
-  const { theme, setTheme, themes } = useTheme();
+  const { mode } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const navbarLogo = mounted
+    ? mode === 'dark' ? '/logo-light-bgremoved.png' : '/logo-dark-bgremoved.png'
+    : '/logo-dark-bgremoved.png';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,19 +35,16 @@ export default function Header() {
     }
   };
 
-  // Determine if current theme is "dark" (for icon display)
-  const isDarkTheme = theme === 'crimson' || theme === 'fiery-sunset' || theme === 'modern-editorial';
-
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-transparent">
+      <header className="sticky top-0 z-50 w-full bg-navbar/90 backdrop-blur-md border-b border-border/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0 bg-transparent">
-              <div className="w-10 h-10 rounded-full border border-border/40 bg-accent flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 overflow-hidden text-accent-foreground font-syne font-bold text-xl">
-                A
+            <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
+              <div className="relative w-10 h-10 flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
+                <Image src={navbarLogo} alt="Auroric Logo" width={40} height={40} className="object-contain w-full h-full" />
               </div>
-              <span className="bg-transparent text-lg font-bold text-accent tracking-tight font-syne">Auroric</span>
+              <span className="text-lg font-bold text-accent tracking-tight font-syne">Auroric</span>
             </Link>
 
             {/* Center: Search bar (desktop only) */}
@@ -59,61 +64,14 @@ export default function Header() {
             {/* Right: Desktop Actions */}
             <div className="hidden md:flex items-center gap-2">
               {/* Theme Switcher */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-                  className="p-2 hover:bg-card/50 rounded-full transition-colors duration-200"
-                  title="Switch Theme"
-                >
-                  {isDarkTheme ? (
-                    <Moon className="w-5 h-5 text-foreground/60" />
-                  ) : (
-                    <Sun className="w-5 h-5 text-foreground/60" />
-                  )}
-                </button>
-
-                {isThemeDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsThemeDropdownOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/50 rounded-xl shadow-lg z-50 overflow-hidden animate-slideDown">
-                      <div className="p-3 border-b border-border/30">
-                        <h3 className="font-semibold text-sm text-foreground">Choose Theme</h3>
-                      </div>
-                      <div className="py-1">
-                        {themes.map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => { setTheme(t.id); setIsThemeDropdownOpen(false); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
-                              theme === t.id
-                                ? 'bg-accent/10 text-accent'
-                                : 'text-foreground/80 hover:bg-background/50 hover:text-foreground'
-                            }`}
-                          >
-                            <div className="flex gap-1">
-                              {t.swatches.slice(0, 3).map((color, i) => (
-                                <div
-                                  key={i}
-                                  className="w-4 h-4 rounded-full border border-border/30"
-                                  style={{ backgroundColor: color }}
-                                />
-                              ))}
-                            </div>
-                            <span className="font-medium">{t.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+              <ThemeToggle />
 
               {isLoggedIn && currentUser ? (
                 <>
                   {/* Create */}
                   <Link
                     href="/create"
-                    className="flex items-center gap-1.5 px-4 py-2 bg-accent text-white rounded-full text-sm font-medium hover:bg-accent/90 transition-colors duration-200"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-foreground rounded-full text-sm font-medium hover:bg-accent/90 transition-colors duration-200"
                   >
                     <Plus className="w-4 h-4" />
                     Create
@@ -241,20 +199,7 @@ export default function Header() {
             {/* Mobile: Right side controls */}
             <div className="flex md:hidden items-center gap-1">
               {/* Theme toggle (mobile) */}
-              <button
-                onClick={() => {
-                  // Quick toggle: warm ↔ crimson
-                  setTheme(isDarkTheme ? 'quiet-luxury' : 'crimson');
-                }}
-                className="p-2 hover:bg-card/50 rounded-full transition-colors"
-                title="Toggle Theme"
-              >
-                {isDarkTheme ? (
-                  <Moon className="w-5 h-5 text-foreground/60" />
-                ) : (
-                  <Sun className="w-5 h-5 text-foreground/60" />
-                )}
-              </button>
+              <ThemeToggle />
 
               {/* Notification bell (mobile, logged in) */}
               {isLoggedIn && currentUser && (

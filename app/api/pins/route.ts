@@ -55,13 +55,17 @@ export async function POST(request: Request) {
       comments: [],
       views: 0,
       isPrivate: body.isPrivate || false,
+      aspectRatioId: body.aspectRatioId,
       createdAt: now,
       updatedAt: now,
     };
 
     const created = await dbCreatePin(pin);
     return NextResponse.json(created, { status: 201 });
-  } catch {
+  } catch (err: any) {
+    if (err.message === 'aspectRatioId is required and must be a valid ratio') {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,12 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Eye, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Eye, Clock, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/lib/app-context';
 import UserAvatar from '@/components/user-avatar';
 import SaveToBoardModal from '@/components/save-to-board-modal';
+import { useChat } from '@/context/ChatContext';
 import { formatCount, timeAgo } from '@/lib/helpers';
+import { ASPECT_RATIOS, DEFAULT_ASPECT_RATIO_ID } from '@/lib/constants/aspectRatios';
+import type { AspectRatioId } from '@/lib/constants/aspectRatios';
+
+/**
+ * Resolve CSS aspect-ratio string from typed ID or legacy string.
+ * Explicit fallback to 1/1 (square) for pins with no ratio data.
+ */
+function resolveAspectRatio(
+  aspectRatioId?: AspectRatioId,
+  legacyAspectRatio?: string,
+): string {
+  if (aspectRatioId && ASPECT_RATIOS[aspectRatioId]) {
+    const r = ASPECT_RATIOS[aspectRatioId];
+    return `${r.ratioW} / ${r.ratioH}`;
+  }
+  if (legacyAspectRatio) return legacyAspectRatio;
+  // Explicit default: square. Do not leave undefined.
+  const fallback = ASPECT_RATIOS[DEFAULT_ASPECT_RATIO_ID];
+  return `${fallback.ratioW} / ${fallback.ratioH}`;
+}
 
 interface PinCardProps {
   id: string;
@@ -22,6 +43,11 @@ interface PinCardProps {
   views?: number;
   createdAt?: string;
   aspectRatio?: string;
+  // NEW — required for masonry integration:
+  /** Typed aspect ratio ID from ASPECT_RATIOS. Drives CSS aspect-ratio on the image container. */
+  aspectRatioId?: AspectRatioId;
+  /** Pixel width assigned by TypedMasonryGrid — informational, card uses CSS for sizing. */
+  columnWidth?: number;
 }
 
 export default function PinCard({
@@ -38,8 +64,11 @@ export default function PinCard({
   views = 0,
   createdAt,
   aspectRatio,
+  aspectRatioId,
+  columnWidth,
 }: PinCardProps) {
   const { currentUser, isLoggedIn, toggleLike, toggleSave, getUser, getBoard, openAuthModal } = useApp();
+  const { openShareModal } = useChat();
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -61,6 +90,13 @@ export default function PinCard({
     setShowSaveModal(true);
   };
 
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoggedIn) { openAuthModal('login'); return; }
+    openShareModal({ pinId: id, imageUrl, title });
+  };
+
   const handleQuickSave = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -75,7 +111,7 @@ export default function PinCard({
       <Link href={`/pin/${id}`} className="block group">
         <div className="pin-card h-full flex flex-col overflow-hidden cursor-pointer">
           {/* Image Container */}
-          <div className="relative w-full bg-card/50 overflow-hidden" style={{ aspectRatio: aspectRatio || '4/3' }}>
+          <div className="relative w-full bg-card/50 overflow-hidden" style={{ aspectRatio: resolveAspectRatio(aspectRatioId, aspectRatio) }}>
             {/* Skeleton shimmer while loading */}
             {!imgLoaded && (
               <div className="absolute inset-0 animate-shimmer" />
@@ -90,9 +126,12 @@ export default function PinCard({
             />
 
             {/* Hover Overlay */}
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 smooth-transition flex flex-col justify-between p-3">
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 smooth-transition flex flex-col justify-between pointer-events-none z-10">
+              {/* Gradient Scrim (Bottom) */}
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent -z-10" />
+
               {/* Top row */}
-              <div className="flex justify-end">
+              <div className="flex justify-end p-3 pointer-events-auto">
                 <button
                   onClick={handleQuickSave}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold smooth-transition font-syne ${isSaved
@@ -104,84 +143,52 @@ export default function PinCard({
                 </button>
               </div>
 
-              {/* Bottom row */}
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={handleLike}
-                  aria-label="Like"
-                  className={`p-2.5 rounded-full smooth-transition backdrop-blur-sm ${isLiked ? 'bg-red-500/20' : 'bg-white/10 hover:bg-white/20'
-                    }`}
-                >
-                  <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-                </button>
-                <button
-                  onClick={handleSave}
-                  aria-label="Save to board"
-                  className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 smooth-transition backdrop-blur-sm"
-                >
-                  <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-accent text-accent' : 'text-white'}`} />
-                </button>
+              {/* Bottom Info & Buttons */}
+              <div className="flex flex-col gap-2 p-3 pointer-events-auto mt-auto">
+                {/* Text Info */}
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="font-semibold text-white text-sm line-clamp-2 font-syne drop-shadow-md">
+                    {title}
+                  </h3>
+                  
+                  {author && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <UserAvatar userId={author.id} displayName={author.displayName} size="sm" />
+                      <span className="text-[11px] font-medium text-white/90 truncate max-w-[120px] drop-shadow-sm">{author.displayName}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom row Action Buttons */}
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleShare}
+                      aria-label="Share"
+                      className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 smooth-transition backdrop-blur-md"
+                    >
+                      <Send className="w-4 h-4 text-white" />
+                    </button>
+                    <button
+                      onClick={handleLike}
+                      aria-label="Like"
+                      className={`p-2.5 rounded-full smooth-transition backdrop-blur-md ${isLiked ? 'bg-red-500/20' : 'bg-white/10 hover:bg-white/20'
+                        }`}
+                    >
+                      <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleSave}
+                    aria-label="Save to board"
+                    className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 smooth-transition backdrop-blur-md"
+                  >
+                    <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-accent text-accent' : 'text-white'}`} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Info */}
-          {!compact ? (
-            <div className="p-2.5 flex flex-col gap-1.5">
-              <h3 className="font-semibold text-foreground/90 text-xs leading-snug line-clamp-2 group-hover:text-accent smooth-transition font-syne">
-                {title}
-              </h3>
-
-              {boardData && (
-                <div className="text-[10px] text-foreground/40 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-accent/60" />
-                  {boardData.name}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-0.5">
-                <div className="flex items-center gap-1.5">
-                  {author && (
-                    <>
-                      <UserAvatar userId={author.id} displayName={author.displayName} size="sm" />
-                      <span className="text-[10px] text-foreground/50 truncate max-w-[80px]">{author.displayName}</span>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 text-[10px] text-foreground/40">
-                  <span className="flex items-center gap-0.5">
-                    <Heart className={`w-2.5 h-2.5 ${isLiked ? 'fill-red-500/70 text-red-500/70' : ''}`} />
-                    {formatCount(likes.length)}
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <MessageCircle className="w-2.5 h-2.5" />
-                    {formatCount(comments.length)}
-                  </span>
-                  {views > 0 && (
-                    <span className="flex items-center gap-0.5">
-                      <Eye className="w-2.5 h-2.5" />
-                      {formatCount(views)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Relative time */}
-              {createdAt && (
-                <div className="flex items-center gap-1 text-[9px] text-foreground/30">
-                  <Clock className="w-2 h-2" />
-                  {timeAgo(createdAt)}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="p-2">
-              <h3 className="font-medium text-foreground/80 text-xs line-clamp-1 font-syne">
-                {title}
-              </h3>
-            </div>
-          )}
         </div>
       </Link>
 

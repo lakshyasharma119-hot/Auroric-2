@@ -2,90 +2,113 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
-export type ThemeId = 'crimson' | 'fiery-sunset' | 'quiet-luxury' | 'modern-editorial';
+// NOTE: The `users` database schema has a `settingsTheme` attribute (max 10 chars, stores 'dark'/'light').
+// It could sync mode preference cross-device in a future pass. Currently it is not wired up to this UI.
 
-export interface ThemeInfo {
+export type ThemeMode = 'light' | 'dark';
+
+export type ThemeId =
+  | 'standard_dark'
+  | 'standard_light'
+  | 'obsidian_crimson'
+  | 'fiery_sunset'
+  | 'quiet_luxury'
+  | 'modern_editorial';
+
+export interface ThemeDefinition {
   id: ThemeId;
-  name: string;
+  label: string;
   description: string;
-  swatches: string[]; // 5 preview colors
+  mode: ThemeMode; 
+  swatch: string[]; 
+  isCustom: boolean; 
 }
 
-export const THEMES: ThemeInfo[] = [
-  {
-    id: 'crimson',
-    name: 'Obsidian & Crimson',
-    description: 'Dark obsidian with bright red accents',
-    swatches: ['#0d0f11', '#ea3a3a', '#1c2028', '#e6e0d8', '#3b3d47'],
-  },
-  {
-    id: 'fiery-sunset',
-    name: 'Fiery Sunset',
-    description: 'Deep burgundy with crimson and peach warmth',
-    swatches: ['#280000', '#B10F2E', '#570000', '#FDFFFF', '#DE7C5A'],
-  },
-  {
-    id: 'quiet-luxury',
-    name: 'Quiet Luxury',
-    description: 'Earthy light theme with alabaster and cognac',
-    swatches: ['#F7F5F0', '#FFFFFF', '#2D2824', '#8A6046', '#DCD7D2'],
-  },
-  {
-    id: 'modern-editorial',
-    name: 'Modern Editorial',
-    description: 'Slate and sage with cool modern tones',
-    swatches: ['#0D1117', '#161B22', '#E6EDF3', '#5B8A72', '#30363D'],
-  },
-];
+export const THEMES: Record<ThemeId, ThemeDefinition> = {
+  standard_dark:     { id: 'standard_dark',     label: 'Dark',               description: 'Standard dark mode',          mode: 'dark',  swatch: ['#0a0a0a', '#1a1a1a', '#ffffff'], isCustom: false },
+  standard_light:    { id: 'standard_light',    label: 'Light',              description: 'Standard light mode',         mode: 'light', swatch: ['#ffffff', '#f4f4f4', '#0a0a0a'], isCustom: false },
+  obsidian_crimson:  { id: 'obsidian_crimson',  label: 'Obsidian & Crimson', description: 'Dark obsidian with bright red accents', mode: 'dark',  swatch: ['#000000', '#e0263a', '#2b2b33', '#e7e2dd', '#54545c'], isCustom: true },
+  fiery_sunset:      { id: 'fiery_sunset',      label: 'Fiery Sunset',       description: 'Deep burgundy with crimson and peach warmth', mode: 'dark',  swatch: ['#3a0d10', '#9c1c2e', '#c4243a', '#ffffff', '#e08a63'], isCustom: true },
+  quiet_luxury:      { id: 'quiet_luxury',      label: 'Quiet Luxury',       description: 'Earthy light theme with alabaster and cognac', mode: 'light', swatch: ['#ffffff', '#ffffff', '#5a4632', '#9c6b3f', '#e7e2dd'], isCustom: true },
+  modern_editorial:  { id: 'modern_editorial',  label: 'Modern Editorial',   description: 'Slate and sage with cool modern tones', mode: 'dark',  swatch: ['#11151c', '#1c2230', '#e7edf2', '#3f7a5f', '#454c58'], isCustom: true },
+};
 
-interface ThemeContextType {
-  theme: ThemeId;
-  setTheme: (theme: ThemeId) => void;
-  themes: ThemeInfo[];
+interface ThemeContextValue {
+  themeId: ThemeId;
+  mode: ThemeMode;
+  setTheme: (id: ThemeId) => void;
+  toggleMode: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = 'auroric-theme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>('quiet-luxury');
+  const [themeId, setThemeId] = useState<ThemeId>('standard_dark');
 
-  // Read from localStorage on mount
+  // 1. AUTO-DETECTION on first visit
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    if (stored && THEMES.some(t => t.id === stored)) {
-      setThemeState(stored);
-      applyTheme(stored);
+    if (stored && THEMES[stored]) {
+      setThemeId(stored);
+      return;
     }
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setThemeId(prefersDark ? 'standard_dark' : 'standard_light');
   }, []);
 
-  const setTheme = useCallback((newTheme: ThemeId) => {
-    setThemeState(newTheme);
-    localStorage.setItem(STORAGE_KEY, newTheme);
-    applyTheme(newTheme);
+  // 2. Keep OS-level changes in sync ONLY if the user has never explicitly chosen
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      const hasExplicitChoice = localStorage.getItem(STORAGE_KEY);
+      if (!hasExplicitChoice) {
+        setThemeId(e.matches ? 'standard_dark' : 'standard_light');
+      }
+    };
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', themeId);
+    const currentMode = THEMES[themeId].mode;
+    document.documentElement.setAttribute('data-mode', currentMode);
+    
+    if (currentMode === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [themeId]);
+
+  const setTheme = useCallback((id: ThemeId) => {
+    setThemeId(id);
+    localStorage.setItem(STORAGE_KEY, id);
+  }, []);
+
+  const toggleMode = useCallback(() => {
+    const nextMode: ThemeMode = THEMES[themeId].mode === 'dark' ? 'light' : 'dark';
+    setTheme(nextMode === 'dark' ? 'standard_dark' : 'standard_light');
+  }, [themeId, setTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, themes: THEMES }}>
+    <ThemeContext.Provider value={{ 
+      themeId, 
+      mode: THEMES[themeId].mode, 
+      setTheme, 
+      toggleMode
+    }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
-function applyTheme(theme: ThemeId) {
-  const root = document.documentElement;
-  if (theme === 'quiet-luxury') {
-    root.removeAttribute('data-theme');
-  } else {
-    root.setAttribute('data-theme', theme);
-  }
-}
-
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    return { theme: 'quiet-luxury' as ThemeId, setTheme: () => {}, themes: THEMES };
+    throw new Error('useTheme must be used within ThemeProvider');
   }
   return context;
 }

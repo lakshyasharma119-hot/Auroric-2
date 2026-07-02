@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/lib/app-context';
+import { useTheme } from '@/lib/theme-context';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { X, Check, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
 
 /** Only lowercase letters, numbers, and underscores. 3-20 chars. */
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
@@ -64,6 +66,18 @@ function validateEmailDomain(email: string): string | null {
 
 function sanitizeUsername(raw: string) {
   return raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
+}
+
+function ModalLogo() {
+  const { mode: themeMode } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const logoSrc = mounted
+    ? themeMode === 'dark' ? '/logo-light-circle.png' : '/logo-dark-circle.png'
+    : '/logo-dark-circle.png';
+
+  return <Image src={logoSrc} alt="Auroric Logo" width={48} height={48} className="object-contain w-full h-full" />;
 }
 
 interface AuthModalProps {
@@ -228,8 +242,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 mx-auto rounded-full bg-accent flex items-center justify-center text-accent-foreground font-syne font-bold text-2xl mb-3 shadow-md shadow-accent/20">
-            A
+          <div className="w-12 h-12 mx-auto mb-3">
+            <ModalLogo />
           </div>
           <h2 className="text-2xl font-bold">{mode === 'login' ? 'Welcome Back' : 'Join Auroric'}</h2>
           <p className="text-foreground/60 text-sm mt-1">

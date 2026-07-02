@@ -1,3 +1,5 @@
+import type { AspectRatioId } from './constants/aspectRatios';
+
 export interface User {
   id: string;
   username: string;
@@ -47,10 +49,16 @@ export interface Pin {
   tags: string[];
   category: string;
   aspectRatio?: string;
+  /** Typed aspect ratio ID from ASPECT_RATIOS. Falls back to 'square_1_1' for legacy pins. */
+  aspectRatioId?: AspectRatioId;
   likes: string[];
   saves: string[];
   comments: Comment[];
   views: number;
+  /** Pre-computed engagement score for server-side trending sort.
+   *  Formula: likes*3 + comments*5 + views*0.1
+   *  Recomputed at write time whenever likes/comments/views change. */
+  engagementScore?: number;
   isPrivate: boolean;
   createdAt: string;
   updatedAt: string;
@@ -94,21 +102,7 @@ export interface Notification {
 
 // ── Direct Messaging ──
 
-export interface Conversation {
-  id: string;
-  participantIds: string[];
-  lastMessageText: string;
-  lastMessageAt: string;
-  createdAt: string;
-}
 
-export interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  text: string;
-  createdAt: string;
-}
 
 // ── Account Management ──
 

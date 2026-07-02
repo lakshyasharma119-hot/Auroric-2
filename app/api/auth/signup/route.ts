@@ -7,7 +7,7 @@ import { Client, Users, ID } from 'node-appwrite';
 const awClient = new Client()
   .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1')
   .setProject(process.env.APPWRITE_PROJECT_ID || '')
-  .setKey(process.env.APPWRITE_API_KEY || '');
+  .setKey(process.env.APPWRITE_KEY || process.env.APPWRITE_API_KEY || '');
 
 const awUsers = new Users(awClient);
 

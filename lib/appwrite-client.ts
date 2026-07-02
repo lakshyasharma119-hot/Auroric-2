@@ -11,6 +11,17 @@
 
 import { Client, Account, ID } from 'appwrite';
 
+// Suppress harmless Appwrite Realtime disconnect logs that happen naturally due to idle timeouts or Fast Refresh.
+if (typeof console !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('Realtime got disconnected')) {
+      return;
+    }
+    originalConsoleError(...args);
+  };
+}
+
 const client = new Client()
   .setEndpoint(
     process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ||

@@ -1,22 +1,20 @@
 /**
  * ============================================================================
- * API ROUTE: Initialize E2EE for User
- * POST /api/auth/initialize-encryption
- * 
- * This endpoint is called when a user logs in or registers.
- * It generates their public/private key pair and saves the public key to their profile.
+ * API ROUTE: Initialize E2EE for User (Appwrite)
+ * GET  /api/auth/initialize-encryption — check encryption status
+ * POST /api/auth/initialize-encryption — store public key
  * ============================================================================
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { supabase } from '@/lib/supabase-client';
+import { databases, DB_ID, USERS_COL } from '@/lib/appwrite';
 
 /**
  * GET /api/auth/initialize-encryption
- * Check if user's encryption is initialized and get their public key
+ * Check if the current user's encryption keys are initialized.
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await getCurrentUser();
 
@@ -27,37 +25,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userId = user.id;
+    // Read the user document directly from Appwrite
+    const doc = await databases.getDocument(DB_ID, USERS_COL, user.id);
 
-    // Check if user already has a public key
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('public_key')
-      .eq('id', userId)
-      .single();
+    const initialized = doc.encryptionInitialized === true;
 
-    if (userError || !userData?.public_key) {
-      // User needs encryption setup
-      return NextResponse.json(
-        {
-          initialized: false,
-          message: 'User needs to initialize encryption',
-          publicKey: null,
-        },
-        { status: 200 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        initialized: true,
-        message: 'User already has encryption initialized',
-        publicKey: userData.public_key,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      initialized,
+      publicKey: initialized ? doc.publicKey ?? null : null,
+    });
   } catch (error) {
-    console.error('Error checking encryption status:', error);
+    console.error('[E2EE] Error checking encryption status:', error);
     return NextResponse.json(
       { error: 'Failed to check encryption status' },
       { status: 500 }
@@ -67,8 +45,10 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/auth/initialize-encryption
- * Generate key pair and save public key to user's profile
- * Called on first login or if keys need to be regenerated
+ * Accept a JWK public key string, store it on the user document,
+ * and mark encryptionInitialized = true.
+ *
+ * Body: { publicKey: string }  (JSON-stringified JWK)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -81,127 +61,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = user.id;
-    const body = await request.json();
-    const { forceRegenerate = false } = body;
-
-    // Check if user already has valid encryption keys
-    if (!forceRegenerate) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('public_key')
-        .eq('id', userId)
-        .single();
-
-      if (userData?.public_key) {
-        return NextResponse.json(
-          {
-            success: true,
-            message: 'Encryption already initialized',
-            publicKey: userData.public_key,
-            generated: false,
-          },
-          { status: 200 }
-        );
-      }
-    }
-
-    // Generate new key pair
-    console.log(`[${userId}] Generating RSA-4096 key pair...`);
-
-    // Note: The actual key generation happens in cryptoUtils.ts
-    // This is a mock response because actual key generation must happen in browser
-    // In practice, you would call this from the client after generating keys
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Ready for key generation',
-        publicKey: null,
-        generated: false,
-        nextStep: 'client_key_generation',
-        instruction:
-          'Client should call initializeUserEncryption() in browser, then POST publicKey here',
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Error initializing encryption:', error);
-    return NextResponse.json(
-      { error: 'Failed to initialize encryption' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * PUT /api/auth/initialize-encryption/save-public-key
- * Save the generated public key to user's profile
- * Called from client after generating key pair
- */
-export async function PUT(request: NextRequest) {
-  try {
-    const user = await getCurrentUser();
-
-    if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const userId = user.id;
     const body = await request.json();
     const { publicKey } = body;
 
-    if (!publicKey) {
+    if (!publicKey || typeof publicKey !== 'string') {
       return NextResponse.json(
-        { error: 'Public key is required' },
+        { error: 'publicKey is required and must be a string' },
         { status: 400 }
       );
     }
 
-    // Validate public key format (basic check)
+    // Validate JWK format — must be parseable JSON with kty: "RSA"
     try {
       const jwk = JSON.parse(publicKey);
       if (!jwk.kty || jwk.kty !== 'RSA') {
-        throw new Error('Invalid JWK format');
+        throw new Error('Not an RSA JWK');
       }
     } catch {
       return NextResponse.json(
-        { error: 'Invalid public key format' },
+        { error: 'Invalid public key format. Expected JSON-stringified RSA JWK.' },
         { status: 400 }
       );
     }
 
-    // Save public key to user profile
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ public_key: publicKey })
-      .eq('id', userId);
+    // Store public key and mark encryption as initialized
+    await databases.updateDocument(DB_ID, USERS_COL, user.id, {
+      publicKey,
+      encryptionInitialized: true,
+    });
 
-    if (updateError) {
-      console.error('Error saving public key:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to save public key' },
-        { status: 500 }
-      );
-    }
+    console.log(`[E2EE] Public key stored for user ${user.id}`);
 
-    console.log(`[${userId}] Public key saved successfully`);
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Public key saved successfully',
-        userId,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Encryption initialized successfully',
+    });
   } catch (error) {
-    console.error('Error saving public key:', error);
+    console.error('[E2EE] Error storing public key:', error);
     return NextResponse.json(
-      { error: 'Failed to save public key' },
+      { error: 'Failed to initialize encryption' },
       { status: 500 }
     );
   }

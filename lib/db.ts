@@ -1,7 +1,10 @@
 import { ID, Query } from 'node-appwrite';
-import { databases, DB_ID, USERS_COL, PINS_COL, BOARDS_COL, NOTIFICATIONS_COL, MESSAGES_COL, CONVERSATIONS_COL, DELETION_REQUESTS_COL } from './appwrite';
-import type { User, Pin, Board, Comment, Notification, UserSettings, PaginatedResult, Conversation, Message, DeletionRequest } from './types';
+import { databases, DB_ID, USERS_COL, PINS_COL, BOARDS_COL, NOTIFICATIONS_COL, MESSAGES_COL, CONVERSATIONS_COL, DELETION_REQUESTS_COL, MESSAGE_RELAY_COL } from './appwrite';
+import type { User, Pin, Board, Comment, Notification, UserSettings, PaginatedResult, DeletionRequest } from './types';
 import { CHAT_STORAGE_LIMIT_STANDARD, CHAT_STORAGE_LIMIT_VERIFIED } from './types';
+import { DEFAULT_ASPECT_RATIO_ID, ASPECT_RATIOS } from './constants/aspectRatios';
+import type { AspectRatioId } from './constants/aspectRatios';
+import { computeEngagementScore } from './constants/engagement';
 
 // ── Types ──
 
@@ -88,10 +91,14 @@ function docToPin(doc: any): Pin {
     boardId: doc.boardId || undefined,
     tags: jsonParse(doc.tagsJson),
     category: doc.category || 'All',
+    aspectRatio: doc.aspectRatio || undefined,
+    // Typed aspect ratio: fall back to square for legacy pins with no stored value.
+    aspectRatioId: (doc.aspectRatioId as AspectRatioId) || DEFAULT_ASPECT_RATIO_ID,
     likes: jsonParse(doc.likesJson),
     saves: jsonParse(doc.savesJson),
     comments: jsonParse(doc.commentsJson),
     views: doc.views ?? 0,
+    engagementScore: doc.engagementScore ?? 0,
     isPrivate: doc.isPrivate ?? false,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt || doc.createdAt,
@@ -99,6 +106,9 @@ function docToPin(doc: any): Pin {
 }
 
 function pinToDoc(p: Pin): Record<string, any> {
+  const likes = p.likes ?? [];
+  const comments = p.comments ?? [];
+  const views = p.views ?? 0;
   return {
     title: p.title,
     description: p.description,
@@ -107,14 +117,17 @@ function pinToDoc(p: Pin): Record<string, any> {
     authorId: p.authorId,
     boardId: p.boardId || '',
     category: p.category,
+    aspectRatioId: p.aspectRatioId || DEFAULT_ASPECT_RATIO_ID,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     isPrivate: p.isPrivate,
-    views: p.views ?? 0,
+    views,
+    // Engagement score recomputed from current counts at every write.
+    engagementScore: p.engagementScore ?? computeEngagementScore(likes.length, comments.length, views),
     tagsJson: JSON.stringify(p.tags),
-    likesJson: JSON.stringify(p.likes),
+    likesJson: JSON.stringify(likes),
     savesJson: JSON.stringify(p.saves),
-    commentsJson: JSON.stringify(p.comments),
+    commentsJson: JSON.stringify(comments),
   };
 }
 
@@ -336,6 +349,10 @@ export async function getPin(id: string): Promise<Pin | null> {
 }
 
 export async function createPin(pin: Pin): Promise<Pin> {
+  if (!pin.aspectRatioId || !ASPECT_RATIOS[pin.aspectRatioId]) {
+    throw new Error('aspectRatioId is required and must be a valid ratio');
+  }
+
   const docId = pin.id || ID.unique();
   const doc = await databases.createDocument(DB_ID, PINS_COL, docId, pinToDoc(pin));
   const created = docToPin(doc);
@@ -408,8 +425,13 @@ export async function toggleLikePin(pinId: string, userId: string): Promise<bool
     }
   }
 
+  // Recompute engagement score inline — likes/comments/saves are embedded
+  // on the pin document (not in separate collections), so we calculate here
+  // rather than via a separate Appwrite Function trigger.
+  const newScore = computeEngagementScore(pin.likes.length, pin.comments.length, pin.views);
   await databases.updateDocument(DB_ID, PINS_COL, pinId, {
     likesJson: JSON.stringify(pin.likes),
+    engagementScore: newScore,
   });
   return !isLiked;
 }
@@ -442,8 +464,10 @@ export async function toggleSavePin(pinId: string, userId: string): Promise<bool
     }
   }
 
+  const newScore = computeEngagementScore(pin.likes.length, pin.comments.length, pin.views);
   await databases.updateDocument(DB_ID, PINS_COL, pinId, {
     savesJson: JSON.stringify(pin.saves),
+    engagementScore: newScore,
   });
   return !isSaved;
 }
@@ -480,8 +504,10 @@ export async function addComment(pinId: string, userId: string, text: string): P
     };
     pin.comments.push(comment);
 
+    const newScore = computeEngagementScore(pin.likes.length, pin.comments.length, pin.views);
     await databases.updateDocument(DB_ID, PINS_COL, pinId, {
       commentsJson: JSON.stringify(pin.comments),
+      engagementScore: newScore,
     });
 
     if (pin.authorId !== userId) {
@@ -516,8 +542,10 @@ export async function deleteComment(pinId: string, commentId: string, userId: st
     if (comment.authorId !== userId && pin.authorId !== userId) return false;
 
     pin.comments = pin.comments.filter(c => c.id !== commentId);
+    const newScore = computeEngagementScore(pin.likes.length, pin.comments.length, pin.views);
     await databases.updateDocument(DB_ID, PINS_COL, pinId, {
       commentsJson: JSON.stringify(pin.comments),
+      engagementScore: newScore,
     });
     return true;
   } catch { return false; }
@@ -580,6 +608,28 @@ export async function getTrendingPins(): Promise<Pin[]> {
 }
 
 /**
+ * Landing page query: top 50 photos by pre-computed engagement score.
+ *
+ * HARD CAP of 50 per spec — this is specific to the front page.
+ * Other feeds (profile, category, search) use normal paginated queries
+ * and must NOT inherit this cap.
+ *
+ * Requires an index on `engagementScore` in the Appwrite collection.
+ */
+export async function getTrendingPhotos(limit: number = 50): Promise<Pin[]> {
+  try {
+    const { documents } = await databases.listDocuments(DB_ID, PINS_COL, [
+      Query.orderDesc('engagementScore'),
+      Query.limit(limit),
+    ]);
+    return documents.map(docToPin).filter(p => !p.isPrivate);
+  } catch {
+    // Fallback: if engagementScore index doesn't exist yet, use the old approach
+    return getTrendingPins().then(pins => pins.slice(0, limit));
+  }
+}
+
+/**
  * Get popular pins sorted by a specific metric.
  * @param sortBy - 'views' | 'likes' | 'comments'
  */
@@ -605,9 +655,13 @@ export async function getPopularPins(sortBy: 'views' | 'likes' | 'comments' = 'v
 export async function incrementPinViews(pinId: string): Promise<number> {
   try {
     const doc = await databases.getDocument(DB_ID, PINS_COL, pinId);
-    const currentViews = doc.views ?? 0;
-    const newViews = currentViews + 1;
-    await databases.updateDocument(DB_ID, PINS_COL, pinId, { views: newViews });
+    const pin = docToPin(doc);
+    const newViews = (pin.views ?? 0) + 1;
+    const newScore = computeEngagementScore(pin.likes.length, pin.comments.length, newViews);
+    await databases.updateDocument(DB_ID, PINS_COL, pinId, {
+      views: newViews,
+      engagementScore: newScore,
+    });
     return newViews;
   } catch {
     return 0;
@@ -774,122 +828,14 @@ export async function seedDatabase(data: {
   }
 }
 
-// ==================== CONVERSATIONS ====================
-
-function docToConversation(doc: any): Conversation {
-  return {
-    id: doc.$id,
-    participantIds: jsonParse(doc.participantIdsJson),
-    lastMessageText: doc.lastMessageText || '',
-    lastMessageAt: doc.lastMessageAt || doc.createdAt,
-    createdAt: doc.createdAt,
-  };
-}
-
-function conversationToDoc(c: Conversation): Record<string, any> {
-  return {
-    participantIdsJson: JSON.stringify(c.participantIds),
-    lastMessageText: c.lastMessageText,
-    lastMessageAt: c.lastMessageAt,
-    createdAt: c.createdAt,
-  };
-}
-
-export async function getConversationsByUser(userId: string): Promise<Conversation[]> {
-  // Appwrite doesn't support array-contains on JSON strings, so we fetch all and filter
-  const docs = await listAll(CONVERSATIONS_COL, [Query.orderDesc('lastMessageAt')]);
-  return docs
-    .map(docToConversation)
-    .filter(c => c.participantIds.includes(userId));
-}
-
-export async function getConversation(id: string): Promise<Conversation | null> {
-  try {
-    const doc = await databases.getDocument(DB_ID, CONVERSATIONS_COL, id);
-    return docToConversation(doc);
-  } catch { return null; }
-}
-
-export async function getConversationByParticipants(userA: string, userB: string): Promise<Conversation | null> {
-  const docs = await listAll(CONVERSATIONS_COL);
-  const found = docs
-    .map(docToConversation)
-    .find(c =>
-      c.participantIds.includes(userA) && c.participantIds.includes(userB)
-    );
-  return found || null;
-}
-
-export async function createConversation(participantIds: string[]): Promise<Conversation> {
-  const conv: Conversation = {
-    id: '',
-    participantIds,
-    lastMessageText: '',
-    lastMessageAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  };
-  const doc = await databases.createDocument(DB_ID, CONVERSATIONS_COL, ID.unique(), conversationToDoc(conv));
-  return docToConversation(doc);
-}
-
-// ==================== MESSAGES ====================
-
-function docToMessage(doc: any): Message {
-  return {
-    id: doc.$id,
-    conversationId: doc.conversationId,
-    senderId: doc.senderId,
-    text: doc.text,
-    createdAt: doc.createdAt,
-  };
-}
-
-function messageToDoc(m: Message): Record<string, any> {
-  return {
-    conversationId: m.conversationId,
-    senderId: m.senderId,
-    text: m.text,
-    createdAt: m.createdAt,
-  };
-}
-
-export async function getMessages(conversationId: string, limit: number = 50): Promise<Message[]> {
-  const { documents } = await databases.listDocuments(DB_ID, MESSAGES_COL, [
-    Query.equal('conversationId', conversationId),
-    Query.orderDesc('createdAt'),
-    Query.limit(limit),
-  ]);
-  return documents.map(docToMessage).reverse(); // chronological order
-}
-
-export async function createMessage(conversationId: string, senderId: string, text: string): Promise<Message> {
-  const now = new Date().toISOString();
-  const msg: Message = {
-    id: '',
-    conversationId,
-    senderId,
-    text,
-    createdAt: now,
-  };
-  const doc = await databases.createDocument(DB_ID, MESSAGES_COL, ID.unique(), messageToDoc(msg));
-
-  // Update conversation's last message
-  await databases.updateDocument(DB_ID, CONVERSATIONS_COL, conversationId, {
-    lastMessageText: text.substring(0, 100),
-    lastMessageAt: now,
-  });
-
-  return docToMessage(doc);
-}
-
 // ==================== CHAT STORAGE ====================
 
 /**
- * Calculate total chat storage used by a user (bytes = sum of message text lengths).
+ * Calculate total chat storage used by a user (bytes = sum of encrypted message lengths).
  */
 export async function getUserChatStorageBytes(userId: string): Promise<number> {
-  const docs = await listAll(MESSAGES_COL, [Query.equal('senderId', userId)]);
-  return docs.reduce((sum, doc) => sum + new TextEncoder().encode(doc.text || '').length, 0);
+  const docs = await listAll(MESSAGE_RELAY_COL, [Query.equal('senderId', userId)]);
+  return docs.reduce((sum, doc) => sum + new TextEncoder().encode(doc.ciphertext || '').length, 0);
 }
 
 /**
@@ -906,16 +852,16 @@ export async function enforceStorageQuota(userId: string, limitBytes: number): P
   let usedBytes = await getUserChatStorageBytes(userId);
   if (usedBytes <= limitBytes) return;
 
-  // Get all messages by this user, oldest first
-  const docs = await listAll(MESSAGES_COL, [Query.equal('senderId', userId)]);
+  // Get all relay messages sent by this user, oldest first
+  const docs = await listAll(MESSAGE_RELAY_COL, [Query.equal('senderId', userId)]);
   const sorted = docs.sort((a, b) =>
     (a.createdAt || '').localeCompare(b.createdAt || '')
   );
 
   for (const doc of sorted) {
     if (usedBytes <= limitBytes) break;
-    const msgSize = new TextEncoder().encode(doc.text || '').length;
-    await databases.deleteDocument(DB_ID, MESSAGES_COL, doc.$id);
+    const msgSize = new TextEncoder().encode(doc.ciphertext || '').length;
+    await databases.deleteDocument(DB_ID, MESSAGE_RELAY_COL, doc.$id);
     usedBytes -= msgSize;
   }
 }

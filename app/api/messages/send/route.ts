@@ -1,274 +1,84 @@
 /**
- * ============================================================================
- * API ROUTE: Send Encrypted Message
  * POST /api/messages/send
- * 
- * This endpoint validates and inserts an encrypted message.
- * ============================================================================
+ * Insert an encrypted message into the message_relay collection.
+ *
+ * Body: { recipientId: string, ciphertext: string, isRequest: boolean }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { supabase } from '@/lib/supabase-client';
+import { databases, DB_ID, USERS_COL, MESSAGE_RELAY_COL } from '@/lib/appwrite';
+import { ID } from 'node-appwrite';
 
-/**
- * Validate ciphertext format (basic validation)
- */
-function validateCiphertext(ciphertext: string): boolean {
-  // Should be base64
-  if (!ciphertext || typeof ciphertext !== 'string') return false;
-  try {
-    atob(ciphertext);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * POST /api/messages/send
- * Send an encrypted message
- *
- * Request body:
- * {
- *   recipientId: string (UUID),
- *   ciphertext: string (base64),
- *   iv: string (base64),
- *   algorithm: "RSA-OAEP" | "AES-GCM"
- * }
- */
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-
-    if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = user.id;
-    const body = await request.json();
-    const { recipientId, ciphertext, iv, algorithm } = body;
+    const body = await req.json();
+    const { recipientId, ciphertext, isRequest } = body;
 
-    // Validation
-    if (!recipientId || !ciphertext || !iv || !algorithm) {
+    // Validate ciphertext
+    if (!ciphertext || typeof ciphertext !== 'string' || !ciphertext.trim()) {
       return NextResponse.json(
-        { error: 'Missing required fields: recipientId, ciphertext, iv, algorithm' },
+        { error: 'ciphertext is required and must be a non-empty string' },
         { status: 400 }
       );
     }
 
-    if (userId === recipientId) {
-      return NextResponse.json(
-        { error: 'Cannot send message to yourself' },
-        { status: 400 }
-      );
-    }
-
-    if (!validateCiphertext(ciphertext)) {
-      return NextResponse.json(
-        { error: 'Invalid ciphertext format' },
-        { status: 400 }
-      );
-    }
-
-    if (!validateCiphertext(iv)) {
-      return NextResponse.json(
-        { error: 'Invalid IV format' },
-        { status: 400 }
-      );
-    }
-
-    if (!['RSA-OAEP', 'AES-GCM'].includes(algorithm)) {
-      return NextResponse.json(
-        { error: 'Invalid algorithm' },
-        { status: 400 }
-      );
-    }
-
-    // Check if recipient exists
-    const { data: recipient, error: recipientError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', recipientId)
-      .single();
-
-    if (recipientError || !recipient) {
-      return NextResponse.json(
-        { error: 'Recipient not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check blocking status (double-check, RLS will also enforce)
-    const { data: blockedByRecipient } = await supabase
-      .from('blocked_users')
-      .select('id')
-      .eq('blocker_id', recipientId)
-      .eq('blocked_id', userId)
-      .single();
-
-    if (blockedByRecipient) {
-      return NextResponse.json(
-        { error: 'Cannot send message: This user has blocked you' },
-        { status: 403 }
-      );
-    }
-
-    const { data: blockedRecipient } = await supabase
-      .from('blocked_users')
-      .select('id')
-      .eq('blocker_id', userId)
-      .eq('blocked_id', recipientId)
-      .single();
-
-    if (blockedRecipient) {
-      return NextResponse.json(
-        { error: 'Cannot send message: You have blocked this user' },
-        { status: 403 }
-      );
-    }
-
-    // Insert encrypted message
-    // RLS policies will also check blocking status
-    const { data: message, error: insertError } = await supabase
-      .from('messages')
-      .insert({
-        sender_id: userId,
-        recipient_id: recipientId,
-        ciphertext,
-        iv,
-      })
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error('Error inserting message:', insertError);
-
-      // Check if it's an RLS error
-      if (insertError.message.includes('blocked') || insertError.message.includes('RLS')) {
-        return NextResponse.json(
-          { error: 'Cannot send message: Recipient has blocked you' },
-          { status: 403 }
-        );
-      }
-
-      throw insertError;
-    }
-
-    console.log(`[${userId}] Message sent to ${recipientId}:`, message.id);
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Message sent',
-        messageId: message.id,
-        createdAt: message.created_at,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Error sending message:', error);
-    return NextResponse.json(
-      { error: 'Failed to send message' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * GET /api/messages/send
- * Fetch encrypted messages in conversation
- *
- * Query params:
- * - recipientId: string (UUID)
- * - limit: number (default: 50, max: 100)
- * - offset: number (default: 0)
- */
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUser();
-
-    if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const userId = user.id;
-    const { searchParams } = new URL(request.url);
-    const recipientId = searchParams.get('recipientId');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
-
-    if (!recipientId) {
+    if (!recipientId || typeof recipientId !== 'string') {
       return NextResponse.json(
         { error: 'recipientId is required' },
         { status: 400 }
       );
     }
 
-    // Check if recipient exists
-    const { data: recipient, error: recipientError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', recipientId)
-      .single();
+    if (recipientId === user.id) {
+      return NextResponse.json(
+        { error: 'Cannot send a message to yourself' },
+        { status: 400 }
+      );
+    }
 
-    if (recipientError || !recipient) {
+    // Validate recipient exists and has encryption set up
+    let recipientDoc;
+    try {
+      recipientDoc = await databases.getDocument(DB_ID, USERS_COL, recipientId);
+    } catch {
       return NextResponse.json(
         { error: 'Recipient not found' },
         { status: 404 }
       );
     }
 
-    // Check if blocked
-    const { data: blockedByRecipient } = await supabase
-      .from('blocked_users')
-      .select('id')
-      .eq('blocker_id', recipientId)
-      .eq('blocked_id', userId)
-      .single();
-
-    if (blockedByRecipient) {
+    if (!recipientDoc.publicKey) {
       return NextResponse.json(
-        { error: 'Cannot view messages: This user has blocked you' },
-        { status: 403 }
+        { error: 'Recipient has not set up encryption yet' },
+        { status: 400 }
       );
     }
 
-    // Fetch messages (encrypted)
-    const { data: messages, error: messagesError } = await supabase
-      .from('messages')
-      .select('*')
-      .or(
-        `and(sender_id.eq.${userId},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${userId})`
-      )
-      .order('created_at', { ascending: true })
-      .range(offset, offset + limit - 1);
-
-    if (messagesError) {
-      throw messagesError;
-    }
-
-    return NextResponse.json(
+    // Insert into message_relay
+    const doc = await databases.createDocument(
+      DB_ID,
+      MESSAGE_RELAY_COL,
+      ID.unique(),
       {
-        success: true,
-        messages: messages || [],
-        count: messages?.length || 0,
-        limit,
-        offset,
-        hasMore: (messages?.length || 0) >= limit,
-      },
-      { status: 200 }
+        senderId: user.id,
+        recipientId,
+        ciphertext,
+        createdAt: new Date().toISOString(),
+        isRequest: isRequest ?? false,
+      }
     );
-  } catch (error) {
-    console.error('Error fetching messages:', error);
+
+    return NextResponse.json({ success: true, messageId: doc.$id });
+  } catch (error: any) {
+    console.error('[messages/send POST] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch messages' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

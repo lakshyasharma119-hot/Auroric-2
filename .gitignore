@@ -6,16 +6,13 @@ __v0_jsx-dev-runtime.ts
 # Common ignores
 node_modules/
 .next/
-.env
-.env.*
-.env*.local
+.env*
 .DS_Store
+*.bak
+scratch/
+tsconfig.tsbuildinfo
 
 # Backend data
 data/db.json
 public/uploads/
-.vercel
-
-.vercel
-
 .vercel

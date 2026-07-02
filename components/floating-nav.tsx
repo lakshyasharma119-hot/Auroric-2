@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, useMotionValue, useSpring, useTransform, MotionValue, AnimatePresence } from 'framer-motion';
 import {
@@ -16,6 +17,8 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useApp } from '@/lib/app-context';
+import { useTheme } from '@/lib/theme-context';
+import { useChat } from '@/context/ChatContext';
 import UserAvatar from '@/components/user-avatar';
 
 interface NavItem {
@@ -32,7 +35,7 @@ interface NavItem {
 function DockItem({ item, mouseX, isActive }: { item: NavItem; mouseX: MotionValue; isActive: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const distance = useTransform(mouseX, (val) => {
+  const distance = useTransform(mouseX, (val: number) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
@@ -54,11 +57,10 @@ function DockItem({ item, mouseX, isActive }: { item: NavItem; mouseX: MotionVal
         aria-label={item.label}
         title={item.label}
       >
-        <div className={`flex items-center justify-center w-full h-full rounded-2xl transition-all duration-200 ${
-          isActive
+        <div className={`flex items-center justify-center w-full h-full rounded-2xl transition-all duration-200 ${isActive
             ? `${item.color} bg-slate-100 dark:bg-slate-800 shadow-md ring-1 ring-black/5 dark:ring-white/10`
-            : `text-slate-500 ${item.hoverBg} group-hover:${item.color} group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:shadow-lg group-hover:ring-1 group-hover:ring-black/5 dark:group-hover:ring-white/10`
-        }`}>
+            : `text-slate-500 ${item.hoverBg} ${item.color.split(' ').map(c => 'group-hover:' + c).join(' ')} group-hover:bg-white dark:group-hover:bg-slate-800 group-hover:shadow-lg group-hover:ring-1 group-hover:ring-black/5 dark:group-hover:ring-white/10`
+          }`}>
           <div className="flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
             {item.icon}
           </div>
@@ -76,7 +78,7 @@ function DockItem({ item, mouseX, isActive }: { item: NavItem; mouseX: MotionVal
 function ProfileItem({ currentUser, isActive, mouseX, onEnter, onLeave }: any) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const distance = useTransform(mouseX, (val) => {
+  const distance = useTransform(mouseX, (val: number) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
@@ -93,9 +95,8 @@ function ProfileItem({ currentUser, isActive, mouseX, onEnter, onLeave }: any) {
           className="relative flex items-center justify-center group"
           aria-label="Profile"
         >
-          <div className={`w-full h-full rounded-full overflow-hidden transition-all duration-200 shadow-sm ${
-            isActive ? 'ring-2 ring-accent shadow-md' : 'ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-accent group-hover:shadow-lg'
-          }`}>
+          <div className={`w-full h-full rounded-full overflow-hidden transition-all duration-200 shadow-sm ${isActive ? 'ring-2 ring-accent shadow-md' : 'ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-accent group-hover:shadow-lg'
+            }`}>
             <UserAvatar
               userId={currentUser.id}
               displayName={currentUser.displayName}
@@ -112,8 +113,12 @@ function ProfileItem({ currentUser, isActive, mouseX, onEnter, onLeave }: any) {
 
 function LogoItem({ isActive, mouseX }: { isActive: boolean; mouseX: MotionValue }) {
   const ref = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  const distance = useTransform(mouseX, (val) => {
+  useEffect(() => { setMounted(true); }, []);
+
+  const distance = useTransform(mouseX, (val: number) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
@@ -121,15 +126,27 @@ function LogoItem({ isActive, mouseX }: { isActive: boolean; mouseX: MotionValue
   const widthSync = useTransform(distance, [-150, 0, 150], [40, 64, 40]);
   const width = useSpring(widthSync, { mass: 0.1, stiffness: 150, damping: 12 });
 
+  const circleLogo = mounted
+    ? mode === 'dark' ? '/logo-light-circle.png' : '/logo-dark-circle.png'
+    : '/logo-dark-circle.png';
+
   return (
     <Link href="/">
       <motion.div
         ref={ref}
         style={{ width, height: width }}
-        className={`relative flex items-center justify-center rounded-full border border-border/40 bg-transparent overflow-hidden shadow-sm hover:shadow-lg transition-shadow ${isActive ? 'ring-2 ring-accent' : ''}`}
+        className="relative flex items-center justify-center group"
+        aria-label="Home"
+        title="Home"
       >
-        <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0 overflow-hidden text-accent-foreground font-syne font-bold">
-          A
+        <div className={`flex items-center justify-center w-full h-full aspect-square rounded-full transition-all duration-200 ${
+          isActive
+            ? 'bg-slate-100 dark:bg-slate-800 shadow-md ring-1 ring-black/5 dark:ring-white/10'
+            : 'hover:bg-white dark:hover:bg-slate-800 group-hover:shadow-lg group-hover:ring-1 group-hover:ring-black/5 dark:group-hover:ring-white/10'
+        }`}>
+          <div className="flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
+            <Image src={circleLogo} alt="Auroric Logo" width={28} height={28} className="object-contain w-7 h-7" />
+          </div>
         </div>
       </motion.div>
     </Link>
@@ -139,7 +156,7 @@ function LogoItem({ isActive, mouseX }: { isActive: boolean; mouseX: MotionValue
 function LoginItem({ mouseX, onClick }: { mouseX: MotionValue, onClick: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const distance = useTransform(mouseX, (val) => {
+  const distance = useTransform(mouseX, (val: number) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
@@ -169,7 +186,8 @@ function LoginItem({ mouseX, onClick }: { mouseX: MotionValue, onClick: () => vo
 
 export default function FloatingNav() {
   const pathname = usePathname();
-  const { currentUser, isLoggedIn, logout, unreadCount, openAuthModal } = useApp();
+  const { currentUser, isLoggedIn, logout, unreadCount: notificationsCount, openAuthModal } = useApp();
+  const { unreadCount } = useChat();
   const [isExpanded, setIsExpanded] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const expandTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -217,12 +235,12 @@ export default function FloatingNav() {
     { id: 'trending', href: '/trending', icon: <TrendingUp className="w-5 h-5" />, label: 'Trending', color: 'text-emerald-600 dark:text-emerald-400', hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-500/10' },
     { id: 'boards', href: '/boards', icon: <LayoutGrid className="w-5 h-5" />, label: 'Boards', color: 'text-violet-600 dark:text-violet-400', hoverBg: 'hover:bg-violet-50 dark:hover:bg-violet-500/10' },
     { id: 'popular', href: '/popular', icon: <Zap className="w-5 h-5" />, label: 'Stats', color: 'text-amber-600 dark:text-amber-400', hoverBg: 'hover:bg-amber-50 dark:hover:bg-amber-500/10' },
-    { id: 'messages', href: '/messages', icon: <Users className="w-5 h-5" />, label: 'Friends', color: 'text-rose-600 dark:text-rose-400', hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-500/10' },
+    { id: 'messages', href: '/messages', icon: <Users className="w-5 h-5" />, label: 'Friends', color: 'text-rose-600 dark:text-rose-400', hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-500/10', badge: unreadCount },
   ];
 
   const expandedItems: NavItem[] = [
     { id: 'create', href: '/create', icon: <Plus className="w-5 h-5" />, label: 'Create', color: 'text-emerald-600 dark:text-emerald-400', hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-500/10' },
-    { id: 'notifications', href: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Alerts', color: 'text-rose-600 dark:text-rose-400', hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-500/10', badge: unreadCount },
+    { id: 'notifications', href: '/notifications', icon: <Bell className="w-5 h-5" />, label: 'Alerts', color: 'text-rose-600 dark:text-rose-400', hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-500/10', badge: notificationsCount },
     { id: 'settings', href: '/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings', color: 'text-slate-600 dark:text-slate-400', hoverBg: 'hover:bg-slate-50 dark:hover:bg-slate-500/10' },
     { id: 'logout', href: '#', icon: <LogOut className="w-5 h-5" />, label: 'Sign Out', color: 'text-red-500 dark:text-red-400', hoverBg: 'hover:bg-red-50 dark:hover:bg-red-500/10', onClick: logout },
   ];
@@ -260,10 +278,10 @@ export default function FloatingNav() {
 
         {/* Right: Profile Avatar / Auth */}
         {isLoggedIn && currentUser ? (
-          <ProfileItem 
-            currentUser={currentUser} 
-            isActive={isActive('/profile')} 
-            mouseX={mouseX} 
+          <ProfileItem
+            currentUser={currentUser}
+            isActive={isActive('/profile')}
+            mouseX={mouseX}
             onEnter={handleProfileEnter}
             onLeave={handleProfileLeave}
           />
