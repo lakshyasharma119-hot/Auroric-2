@@ -1,214 +1,131 @@
-# Auroric — Luxury Inspiration Platform
+# Auroric
 
-A premium, Pinterest-inspired social platform for discovering, creating, and sharing visual inspiration. Built with Next.js 16, Tailwind CSS, and Appwrite.
+**A luxury, Pinterest-inspired platform for discovering, creating, and sharing visual inspiration.**
+
+Auroric combines a high-performance masonry feed, end-to-end encrypted messaging, and a tiered creator economy into a single polished experience — built with Next.js, Tailwind CSS, and Appwrite.
 
 ![Auroric Preview](public/logo.png)
 
-## ✨ Features
+---
 
-### Core Platform
-- **Masonry Pin Feed** — Browse, create, and share visual pins with categories
-- **Boards** — Organize pins into curated collections
-- **Social Features** — Follow users, like/save/comment on pins, direct messaging
-- **Search** — Full-text search across pins, boards, and users
-- **Trending & Popular** — Discover trending and popular content
+## Features
 
-### UI / Design
-- **Floating Navigation Bar** — Pill-shaped, glassmorphism bottom nav with glow halos and expand-on-hover behavior
-- **Auroric Logo** — Custom flame-gradient logo mark with "Auroric" branding
-- **Dark Theme** — Fiery Sunset editorial palette with custom CSS tokens
-- **Smooth Animations** — Micro-animations, glow pulses, slide transitions
+### Core Visual Engine
+- **Masonry pin feed** — responsive, aspect-ratio-aware grid layout with no gaps, driven by a mandatory ratio selection at upload time
+- **Boards & collections** — organize, categorize, and curate saved pins
+- **Interactive avatar studio** — canvas-based circular cropping with zoom, drag, and client + server-side validation
+- **Trending feed** — landing page surfaces the top 50 pins by a weighted engagement score (likes, comments, views)
 
-### Profile Picture Upload
-- **Drag & Drop** — Drag files or click to select
-- **Client-Side Validation** — File type (PNG, JPEG, WebP), size (≤10MB)
-- **Interactive Crop Tool** — Canvas-based 1:1 circular crop with zoom & drag
-- **Upload Progress** — Real-time progress bar via XMLHttpRequest
-- **Server Validation** — Double validation on the API side
-- **Auto Cleanup** — Old avatar files are automatically deleted from storage
+### Social & Messaging
+- **End-to-end encrypted direct messaging** — RSA-OAEP key pairs generated client-side via the Web Crypto API; private keys never leave the browser
+- **24-hour persistent ledger** — messages sync across sessions via delta polling and expire automatically after 24 hours (extended retention for paid tiers)
+- **In-chat pin sharing** — share inspiration directly into private conversations
+- **Instagram-style blocking & message requests** — safely manage unwanted interactions
+- **Social graph** — follow creators, like pins, build a personalized feed
 
-### Authentication
-- **Email/Password** signup & login with JWT sessions
-- **Google OAuth** via NextAuth
-- **Email Verification** via Appwrite
-- **Password Reset** flow
-- **Rate-Limited Password Changes** (3 per 3-day window)
+### Creator Economy & Monetization
+- **Auroric Plus & Prime** — tiered subscriptions (monthly / yearly) with distinct perks
+- **Verification badges** — blue badge for Plus, glowing gold badge for Prime, surfaced on profiles, search results, and in chat
+- **Tier-gated downloads** — dynamic resolution delivery (Standard / HD / Full HD), enforced server-side, not just in the UI
+- **Priority search ranking** — Prime members rank above Plus, who rank above free users
+- **Exclusive UI themes** — premium aesthetic themes unlockable only on paid tiers
+
+### Creator Analytics
+- **30-day interaction graph** — visualize views, likes, downloads, and shares over time
+- **Growth trend indicators** — rolling 15-day comparisons with percentage change
+- **Gated dashboard access** — unlocks after a creator publishes 20+ pins
+
+### Design System
+- **Two-axis theming** — a light/dark mode toggle independent from four (or six, on paid tiers) curated aesthetic themes
+- **Floating glassmorphism navigation** — pill-shaped bottom nav with hover expansion
+- **Consistent motion language** — smooth transitions and toast-driven feedback throughout
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| **Framework** | Next.js 16 (App Router, Turbopack) |
-| **Language** | TypeScript 5.7 |
-| **Styling** | Tailwind CSS 3.4 + custom CSS |
-| **Auth** | NextAuth 5 (beta) + custom JWT |
-| **Database** | Appwrite Database |
-| **Storage** | Appwrite Storage |
-| **Icons** | Lucide React |
-| **Fonts** | Syne, DM Sans, JetBrains Mono |
-| **Deployment** | Vercel |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Language | TypeScript |
+| Styling | Tailwind CSS + CSS custom-property theming |
+| UI Components | Radix UI / shadcn, Lucide React icons |
+| Database | Appwrite Database |
+| Storage | Appwrite Storage |
+| Auth | Appwrite Auth + custom JWT session handling |
+| Encryption | Web Crypto API (RSA-OAEP), client-side only |
+| Charts | Recharts |
+| Deployment | Vercel |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
-```
-├── app/                    # Next.js App Router pages
-│   ├── api/                # API routes (auth, pins, boards, upload, etc.)
-│   ├── profile/            # User profile page
-│   ├── settings/           # Settings & preferences
-│   ├── explore/            # Pin exploration
-│   ├── trending/           # Trending pins
-│   ├── popular/            # Popular pins
-│   ├── messages/           # Direct messaging
-│   ├── globals.css         # Global styles + floating nav CSS
-│   ├── layout.tsx          # Root layout with FloatingNav
-│   └── page.tsx            # Home page
-├── components/             # React components
-│   ├── floating-nav.tsx    # Bottom floating navigation bar
-│   ├── auroric-logo.tsx    # Logo component
-│   ├── profile-picture-upload.tsx  # Avatar upload modal
-│   ├── avatar-crop-modal.tsx       # Image crop tool
-│   ├── user-avatar.tsx     # Avatar display (image or initials)
-│   ├── header.tsx          # Top header (search + logo)
-│   ├── footer.tsx          # Footer
-│   └── ...                 # Other components
-├── lib/                    # Shared utilities
-│   ├── app-context.tsx     # Global app state (React Context)
-│   ├── api-client.ts       # Frontend API client
-│   ├── db.ts               # Appwrite database operations
-│   ├── auth.ts             # Auth utilities
-│   └── types.ts            # TypeScript types
-├── public/
-│   └── logo.png            # Auroric logo
-└── package.json
+```text
+├── app/
+│   ├── api/                  # Serverless API routes (auth, pins, messages, downloads)
+│   ├── create/                # Upload flow: ratio selection, cropping, publish
+│   ├── messages/               # E2EE chat interface
+│   ├── pin/[id]/                # Pin detail + tier-gated downloads
+│   ├── pricing/                   # Subscription plans
+│   ├── profile/                    # Profile + creator analytics dashboard
+│   ├── settings/                     # Account, appearance, and theme settings
+│   └── globals.css                    # Design tokens and theme variables
+├── components/
+│   ├── masonry-grid.tsx        # Aspect-ratio-aware masonry layout engine
+│   ├── pin-card.tsx             # Core feed card component
+│   ├── nav/                      # Header, mode toggle, floating dock
+│   └── upload/                    # Aspect ratio picker, image cropper
+├── functions/
+│   └── e2ee-message-reaper/    # Appwrite scheduled function: 24h message expiry
+├── hooks/
+│   └── useE2EERelay.ts          # Encryption, delta sync, and message relay logic
+├── lib/
+│   ├── db.ts                     # Appwrite data layer
+│   ├── cryptoUtils.ts             # Client-side E2EE key generation and crypto
+│   ├── theme-context.tsx           # Two-axis (mode + theme) state management
+│   └── types.ts                     # Shared TypeScript interfaces
+└── scripts/
+    └── backfill-aspect-ratios.ts # One-time legacy data migration
 ```
 
 ---
 
-## 🚀 Getting Started
+## Architecture Notes
 
-### Prerequisites
-- **Node.js** ≥ 20.0.0
-- **npm** (included with Node)
-- An **Appwrite** project with database and storage bucket configured
+- **Aggregate-free scoring.** Appwrite's query layer has no `SUM`/`GROUP BY` support, so trending scores are pre-computed and denormalized at write time rather than calculated live at query time.
+- **Zero-knowledge messaging.** The server only ever stores ciphertext. Encryption and decryption happen exclusively in the browser; a scheduled Appwrite function prunes expired messages hourly.
+- **Two-axis theming.** Light/dark mode and aesthetic theme selection are modeled as independent state, so toggling base mode never silently strands a user mid-theme.
 
-### 1. Clone the repository
+---
+
+## Getting Started
+
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/your-username/auroric.git
 cd auroric
+pnpm install
 ```
 
-### 2. Install dependencies
-```bash
-npm install --legacy-peer-deps
-```
-
-### 3. Set up environment variables
-
-Create a `.env.local` file in the project root:
+Create a `.env` file with your Appwrite project credentials:
 
 ```env
-# ── Appwrite ──
-APPWRITE_ENDPOINT=https://nyc.cloud.appwrite.io/v1
-APPWRITE_PROJECT_ID=your_project_id
-APPWRITE_API_KEY=your_api_key
-APPWRITE_DATABASE_ID=your_database_id
-APPWRITE_BUCKET_ID=your_bucket_id
-
-# ── Appwrite Collection IDs ──
-APPWRITE_USERS_COLLECTION_ID=users
-APPWRITE_PINS_COLLECTION_ID=pins
-APPWRITE_BOARDS_COLLECTION_ID=boards
-APPWRITE_NOTIFICATIONS_COLLECTION_ID=notifications
-APPWRITE_MESSAGES_COLLECTION_ID=messages
-APPWRITE_CONVERSATIONS_COLLECTION_ID=conversations
-APPWRITE_DELETION_REQUESTS_COLLECTION_ID=deletion_requests
-
-# ── Auth ──
-JWT_SECRET=your_jwt_secret_min_32_chars
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-
-# ── Google OAuth (optional) ──
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# ── Appwrite Client-Side (for email verification) ──
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://nyc.cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your_project_id
+APPWRITE_ENDPOINT=
+APPWRITE_PROJECT_ID=
+APPWRITE_KEY=
+APPWRITE_DATABASE_ID=
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=
+NEXT_PUBLIC_APPWRITE_ENDPOINT=
 ```
 
-### 4. Run the development server
 ```bash
-npm run dev
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### 5. Seed the database (optional)
-Navigate to the app and trigger the seed endpoint to populate sample data.
+Visit `v0-auroric.vercel.app`.
 
 ---
 
-## 🌐 Deploying to Vercel
+## License
 
-### Step 1: Push to Git
-```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
-```
-
-### Step 2: Import project on Vercel
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import your Git repository
-3. Vercel will auto-detect it as a Next.js project
-
-### Step 3: Set environment variables
-In Vercel's project settings → **Environment Variables**, add all the variables from `.env.local` above.
-
-### Step 4: Configure build settings
-The project includes a `vercel.json` with `"installCommand": "npm install --legacy-peer-deps"`. No additional build configuration is needed.
-
-### Step 5: Deploy
-Click **Deploy**. Vercel will build and deploy the application automatically.
-
-### Step 6: Update URLs
-After deployment, update these environment variables with your production URL:
-- `NEXTAUTH_URL` → `https://your-domain.vercel.app`
-
-### Step 7: Configure Appwrite
-In your Appwrite console:
-- Add your Vercel domain to **Platforms** (Web App)
-- Update **OAuth2 redirect URLs** if using Google OAuth
-- Ensure the storage bucket has proper **file permissions** (read access for all, create for authenticated users)
-
----
-
-## 📝 Environment Variables Reference
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `APPWRITE_ENDPOINT` | ✅ | Appwrite API endpoint |
-| `APPWRITE_PROJECT_ID` | ✅ | Appwrite project ID |
-| `APPWRITE_API_KEY` | ✅ | Server-side Appwrite API key |
-| `APPWRITE_DATABASE_ID` | ✅ | Database ID |
-| `APPWRITE_BUCKET_ID` | ✅ | Storage bucket for uploads |
-| `JWT_SECRET` | ✅ | Secret for JWT token signing |
-| `NEXTAUTH_SECRET` | ✅ | NextAuth session secret |
-| `NEXTAUTH_URL` | ✅ | App URL (localhost or production) |
-| `GOOGLE_CLIENT_ID` | ❌ | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | ❌ | Google OAuth client secret |
-
----
-
-## 📄 License
-
-This project is private and not licensed for redistribution.
-
----
-
-Made with ❤️ by Lucky
+This project is currently unlicensed for public use. All rights reserved.
