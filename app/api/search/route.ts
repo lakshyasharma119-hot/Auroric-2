@@ -11,11 +11,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ pins: [], users: [], boards: [] });
     }
 
-    const [pins, users, boards] = await Promise.all([
+    let [pins, users, boards] = await Promise.all([
       searchPins(query, category),
       searchUsers(query),
       searchBoards(query),
     ]);
+
+    // ── Subscription tier priority sort ──
+    const tierPriority: Record<string, number> = { yearly: 0, monthly: 1, free: 2 };
+    users.sort((a, b) => {
+      const pa = tierPriority[a.subscriptionTier ?? 'free'] ?? 2;
+      const pb = tierPriority[b.subscriptionTier ?? 'free'] ?? 2;
+      return pa - pb;
+    });
 
     return NextResponse.json({ pins, users, boards });
   } catch {

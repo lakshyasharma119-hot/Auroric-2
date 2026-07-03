@@ -12,6 +12,8 @@ import { Edit3, Share2, Settings, Bookmark, Heart, Copy, Camera } from 'lucide-r
 import Link from 'next/link';
 import { useApp } from '@/lib/app-context';
 import { formatCount } from '@/lib/helpers';
+import SubscriptionBadge from '@/components/ui/SubscriptionBadge';
+import AnalyticsDashboard from '@/components/analytics-dashboard';
 
 export default function ProfilePage() {
   const { currentUser, isLoggedIn, pins, getPinsByUser, getSavedPins, getBoardsByUser, openAuthModal } = useApp();
@@ -75,7 +77,10 @@ export default function ProfilePage() {
               </button>
             </div>
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2">{currentUser.displayName}</h1>
+              <h1 className="text-4xl font-bold mb-2 flex items-center gap-2">
+                {currentUser.displayName}
+                <SubscriptionBadge tier={currentUser.subscriptionTier || 'free'} size="lg" />
+              </h1>
               <p className="text-lg text-foreground/70 mb-4">@{currentUser.username} • {currentUser.bio}</p>
               {currentUser.website && (
                 <a href={currentUser.website} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline text-sm mb-4 inline-block">{currentUser.website}</a>
@@ -118,6 +123,8 @@ export default function ProfilePage() {
 
       <main className="flex-1 w-full py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <AnalyticsDashboard />
+
           <div className="flex items-center gap-4 mb-8 border-b border-border/30 pb-4">
             <button onClick={() => setActiveTab('pins')}
               className={`flex items-center gap-2 px-4 py-2 font-semibold smooth-transition border-b-2 ${activeTab === 'pins' ? 'border-accent text-accent' : 'border-transparent text-foreground/60 hover:text-foreground'}`}>

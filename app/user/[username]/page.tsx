@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useApp } from '@/lib/app-context';
 import { useRouter } from 'next/navigation';
 import { formatCount, timeAgo } from '@/lib/helpers';
+import SubscriptionBadge from '@/components/ui/SubscriptionBadge';
 
 export default function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
@@ -61,7 +62,10 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
           <div className="flex flex-col sm:flex-row gap-8 items-start sm:items-end">
             <UserAvatar userId={user.id} displayName={user.displayName} size="xl" />
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-1">{user.displayName}</h1>
+              <h1 className="text-4xl font-bold mb-1 flex items-center gap-2">
+                {user.displayName}
+                <SubscriptionBadge tier={user.subscriptionTier || 'free'} size="lg" />
+              </h1>
               <p className="text-lg text-foreground/60 mb-3">@{user.username}</p>
               <p className="text-foreground/80 mb-4 max-w-2xl">{user.bio}</p>
 

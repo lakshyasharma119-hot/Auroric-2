@@ -1,7 +1,7 @@
 import { ID, Query } from 'node-appwrite';
-import { databases, DB_ID, USERS_COL, PINS_COL, BOARDS_COL, NOTIFICATIONS_COL, MESSAGES_COL, CONVERSATIONS_COL, DELETION_REQUESTS_COL, MESSAGE_RELAY_COL } from './appwrite';
+import { databases, DB_ID, USERS_COL, PINS_COL, BOARDS_COL, NOTIFICATIONS_COL, MESSAGES_COL, CONVERSATIONS_COL, DELETION_REQUESTS_COL, MESSAGE_RELAY_COL, ANALYTICS_EVENTS_COL } from './appwrite';
 import type { User, Pin, Board, Comment, Notification, UserSettings, PaginatedResult, DeletionRequest } from './types';
-import { CHAT_STORAGE_LIMIT_STANDARD, CHAT_STORAGE_LIMIT_VERIFIED } from './types';
+import { CHAT_STORAGE_LIMIT_STANDARD, CHAT_STORAGE_LIMIT_VERIFIED, CHAT_STORAGE_LIMIT_FREE, CHAT_STORAGE_LIMIT_MONTHLY, CHAT_STORAGE_LIMIT_YEARLY } from './types';
 import { DEFAULT_ASPECT_RATIO_ID, ASPECT_RATIOS } from './constants/aspectRatios';
 import type { AspectRatioId } from './constants/aspectRatios';
 import { computeEngagementScore } from './constants/engagement';
@@ -42,6 +42,7 @@ function docToUser(doc: any): ServerUser {
     passwordChangeCount: doc.passwordChangeCount ?? 0,
     passwordChangeLockUntil: doc.passwordChangeLockUntil || undefined,
     accountStatus: doc.accountStatus || 'active',
+    subscriptionTier: doc.subscriptionTier || 'free',
     settings: {
       privateProfile: doc.settingsPrivateProfile ?? false,
       showActivity: doc.settingsShowActivity ?? true,
@@ -77,6 +78,7 @@ function userToDoc(u: ServerUser): Record<string, any> {
     settingsEmailOnNewFollower: s.emailOnNewFollower ?? false,
     settingsEmailOnPinInteraction: s.emailOnPinInteraction ?? false,
     settingsTheme: s.theme || 'dark',
+    subscriptionTier: u.subscriptionTier || 'free',
   };
 }
 
@@ -99,6 +101,7 @@ function docToPin(doc: any): Pin {
     comments: jsonParse(doc.commentsJson),
     views: doc.views ?? 0,
     engagementScore: doc.engagementScore ?? 0,
+    fileSize: doc.fileSize ?? (4 * 1024 * 1024), // 4MB fallback
     isPrivate: doc.isPrivate ?? false,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt || doc.createdAt,
@@ -124,6 +127,7 @@ function pinToDoc(p: Pin): Record<string, any> {
     views,
     // Engagement score recomputed from current counts at every write.
     engagementScore: p.engagementScore ?? computeEngagementScore(likes.length, comments.length, views),
+    fileSize: p.fileSize ?? (4 * 1024 * 1024),
     tagsJson: JSON.stringify(p.tags),
     likesJson: JSON.stringify(likes),
     savesJson: JSON.stringify(p.saves),
@@ -406,6 +410,8 @@ export async function toggleLikePin(pinId: string, userId: string): Promise<bool
     pin.likes = pin.likes.filter(id => id !== userId);
   } else {
     pin.likes.push(userId);
+    // ── Analytics Tracking ──
+    trackAnalyticsEvent(pinId, pin.authorId, 'like');
     if (pin.authorId !== userId) {
       let displayName = 'Someone';
       try {
@@ -662,6 +668,8 @@ export async function incrementPinViews(pinId: string): Promise<number> {
       views: newViews,
       engagementScore: newScore,
     });
+    // ── Analytics Tracking ──
+    trackAnalyticsEvent(pinId, pin.authorId, 'view');
     return newViews;
   } catch {
     return 0;
@@ -763,12 +771,26 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 export async function searchUsers(query: string): Promise<SafeUser[]> {
   const docs = await listAll(USERS_COL);
   const q = query.toLowerCase();
-  return docs
+  const filtered = docs
     .map(docToUser)
     .filter(u =>
       u.username.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q)
     )
     .map(stripPassword);
+
+  // ── Subscription tier priority sort ──
+  // This is intentional client-side sorting, not a bug. Appwrite cannot sort by
+  // computed priority in a single query. We re-sort AFTER the query returns so
+  // that premium users appear higher in results. A stable sort preserves the
+  // original relevance order within each tier group.
+  const tierPriority: Record<string, number> = { yearly: 0, monthly: 1, free: 2 };
+  filtered.sort((a, b) => {
+    const pa = tierPriority[a.subscriptionTier ?? 'free'] ?? 2;
+    const pb = tierPriority[b.subscriptionTier ?? 'free'] ?? 2;
+    return pa - pb;
+  });
+
+  return filtered;
 }
 
 export async function searchBoards(query: string): Promise<Board[]> {
@@ -839,10 +861,18 @@ export async function getUserChatStorageBytes(userId: string): Promise<number> {
 }
 
 /**
- * Get the user's storage limit based on verification status.
+ * Get the user's storage limit based on subscription tier.
+ * Falls back to verification-based limits for backward compatibility.
  */
-export function getChatStorageLimit(user: { isVerified: boolean }): number {
-  return user.isVerified ? CHAT_STORAGE_LIMIT_VERIFIED : CHAT_STORAGE_LIMIT_STANDARD;
+export function getChatStorageLimit(user: { isVerified?: boolean; subscriptionTier?: string }): number {
+  const tier = user.subscriptionTier || 'free';
+  switch (tier) {
+    case 'yearly':  return CHAT_STORAGE_LIMIT_YEARLY;   // 500 MB (524_288_000 bytes)
+    case 'monthly': return CHAT_STORAGE_LIMIT_MONTHLY;   // 100 MB (104_857_600 bytes)
+    default:
+      // Backward compat: verified users without a tier still get the legacy verified limit
+      return user.isVerified ? CHAT_STORAGE_LIMIT_VERIFIED : CHAT_STORAGE_LIMIT_FREE;
+  }
 }
 
 /**
@@ -895,4 +925,120 @@ export async function getDeletionRequest(userId: string): Promise<DeletionReques
     Query.limit(1),
   ]);
   return documents.length ? docToDeletionRequest(documents[0]) : null;
+}
+
+// ==================== ANALYTICS ====================
+
+export type AnalyticsActionType = 'view' | 'like' | 'download' | 'share';
+
+/**
+ * Silently track an analytics event.
+ */
+export async function trackAnalyticsEvent(pinId: string, ownerId: string, actionType: AnalyticsActionType): Promise<void> {
+  try {
+    await databases.createDocument(DB_ID, ANALYTICS_EVENTS_COL, ID.unique(), {
+      pinId,
+      ownerId,
+      actionType,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    // Fail silently so we don't break main user flows
+    console.warn('[Analytics] Failed to track event:', error);
+  }
+}
+
+export interface CreatorAnalytics {
+  views: number;
+  likes: number;
+  downloads: number;
+  shares: number;
+  trends: {
+    views: number;
+    likes: number;
+    downloads: number;
+    shares: number;
+  };
+  timeline: { date: string; views: number; likes: number; downloads: number; shares: number }[];
+}
+
+/**
+ * Fetch and compute 30-day analytics for a creator.
+ */
+export async function getCreatorAnalytics(ownerId: string): Promise<CreatorAnalytics> {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoIso = thirtyDaysAgo.toISOString();
+
+    // Appwrite doesn't support aggregate queries directly yet, so we pull the last 30 days of events.
+    // In a massive production app this would use an OLAP DB.
+    const res = await databases.listDocuments(DB_ID, ANALYTICS_EVENTS_COL, [
+      Query.equal('ownerId', ownerId),
+      Query.greaterThanEqual('createdAt', thirtyDaysAgoIso),
+      Query.limit(5000) // generous limit for this phase
+    ]);
+
+    const events = res.documents;
+
+    // Define 15 days ago for trend split
+    const fifteenDaysAgo = new Date();
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+    const fifteenDaysAgoTime = fifteenDaysAgo.getTime();
+
+    const stats = { views: 0, likes: 0, downloads: 0, shares: 0 };
+    const oldStats = { views: 0, likes: 0, downloads: 0, shares: 0 };
+    
+    // Track daily totals
+    const dailyMap: Record<string, any> = {};
+
+    for (const ev of events) {
+      const type = ev.actionType as keyof typeof stats;
+      if (stats[type] !== undefined) {
+        stats[type]++;
+        const t = new Date(ev.createdAt).getTime();
+        if (t < fifteenDaysAgoTime) {
+          oldStats[type]++;
+        }
+      }
+
+      // Timeline grouping (YYYY-MM-DD)
+      const dateKey = ev.createdAt.split('T')[0];
+      if (!dailyMap[dateKey]) dailyMap[dateKey] = { date: dateKey, views: 0, likes: 0, downloads: 0, shares: 0 };
+      if (dailyMap[dateKey][type] !== undefined) dailyMap[dateKey][type]++;
+    }
+
+    // Compute percentage trends ((new - old) / old * 100)
+    // new period is (total - oldStats)
+    const computeTrend = (total: number, oldTotal: number) => {
+      const newTotal = total - oldTotal;
+      if (oldTotal === 0) return newTotal > 0 ? 100 : 0;
+      return Math.round(((newTotal - oldTotal) / oldTotal) * 100);
+    };
+
+    const trends = {
+      views: computeTrend(stats.views, oldStats.views),
+      likes: computeTrend(stats.likes, oldStats.likes),
+      downloads: computeTrend(stats.downloads, oldStats.downloads),
+      shares: computeTrend(stats.shares, oldStats.shares),
+    };
+
+    // Backfill timeline with 0s for missing days in the last 30 days
+    const timeline = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const k = d.toISOString().split('T')[0];
+      timeline.push(dailyMap[k] || { date: k, views: 0, likes: 0, downloads: 0, shares: 0 });
+    }
+
+    return { ...stats, trends, timeline };
+  } catch (err) {
+    console.error('Error fetching analytics:', err);
+    return {
+      views: 0, likes: 0, downloads: 0, shares: 0,
+      trends: { views: 0, likes: 0, downloads: 0, shares: 0 },
+      timeline: []
+    };
+  }
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Header from '@/components/header';
 import UserAvatar from '@/components/user-avatar';
 import MessageBubble from '@/components/message-bubble';
+import SubscriptionBadge from '@/components/ui/SubscriptionBadge';
 import Link from 'next/link';
 import { Send, ArrowLeft, MessageCircle, Search, ShieldCheck, AlertTriangle, RefreshCw, Smile, Image as ImageIcon, X, Info, BellOff } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -491,7 +492,10 @@ export default function MessagesPage() {
                                             <Link href={`/user/${activeOtherUser.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                                                 <UserAvatar userId={activeConversation} displayName={activeOtherUser.displayName} size="md" />
                                                 <div className="flex flex-col">
-                                                    <p className="font-semibold text-black dark:text-white text-sm">{activeOtherUser.displayName}</p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="font-semibold text-black dark:text-white text-sm">{activeOtherUser.displayName}</p>
+                                                        <SubscriptionBadge tier={activeOtherUser.subscriptionTier || 'free'} size="sm" />
+                                                    </div>
                                                     <p className="text-xs text-gray-500 dark:text-zinc-500">Active</p>
                                                 </div>
                                             </Link>

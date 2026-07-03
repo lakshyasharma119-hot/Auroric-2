@@ -9,6 +9,7 @@ export interface SharedPinData {
   pinId: string;
   imageUrl: string;
   title: string;
+  authorId: string;
 }
 
 interface ChatContextType {
@@ -73,7 +74,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const sendPinShare = async (recipientId: string, pinData: SharedPinData) => {
     const payload = JSON.stringify({ type: 'pin_share', ...pinData });
-    return sendMessage(recipientId, payload);
+    const success = await sendMessage(recipientId, payload);
+    
+    // Silently track share analytics
+    if (success) {
+      fetch('/api/analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pinId: pinData.pinId,
+          ownerId: pinData.authorId,
+          actionType: 'share'
+        })
+      }).catch(() => {}); // silent fail
+    }
+    
+    return success;
   };
 
   // Optional: Keep global context synced with real-time unreadCount if needed

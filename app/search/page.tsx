@@ -13,6 +13,7 @@ import { useApp } from '@/lib/app-context';
 import { api } from '@/lib/api-client';
 import { formatCount } from '@/lib/helpers';
 import type { Pin, User, Board } from '@/lib/types';
+import SubscriptionBadge from '@/components/ui/SubscriptionBadge';
 
 type AgeFilter = 'all' | 'new' | '1year' | '2year' | '2year+';
 
@@ -219,7 +220,10 @@ export default function SearchPage() {
                       <Link key={user.id} href={`/user/${user.username}`} className="pin-card p-4 flex items-center gap-4 group hover:border-accent/50">
                         <UserAvatar userId={user.id} displayName={user.displayName} size="lg" />
                         <div>
-                          <p className="font-semibold text-foreground group-hover:text-accent smooth-transition">{user.displayName}</p>
+                          <p className="font-semibold text-foreground group-hover:text-accent smooth-transition flex items-center gap-1.5">
+                          {user.displayName}
+                          <SubscriptionBadge tier={user.subscriptionTier || 'free'} size="sm" />
+                        </p>
                           <p className="text-sm text-foreground/60">@{user.username}</p>
                           <p className="text-xs text-foreground/50 mt-1">{formatCount(user.followers.length)} followers</p>
                         </div>

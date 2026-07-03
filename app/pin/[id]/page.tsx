@@ -7,7 +7,9 @@ import PinCard from '@/components/pin-card';
 import UserAvatar from '@/components/user-avatar';
 import FollowButton from '@/components/follow-button';
 import SaveToBoardModal from '@/components/save-to-board-modal';
+import DownloadMenu from '@/components/download-menu';
 import { Heart, MessageCircle, Share2, Copy, Bookmark, Trash2, Send, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/app-context';
@@ -113,6 +115,7 @@ export default function PinDetailPage({ params }: { params: Promise<{ id: string
                 </TransformWrapper>
 
                 <div className="absolute top-4 right-4 flex gap-2 z-10">
+                  <DownloadMenu pin={pin} userTier={currentUser?.subscriptionTier} isLoggedIn={isLoggedIn} openAuthModal={openAuthModal} />
                   <div className="relative">
                     <button onClick={() => setShowShareMenu(!showShareMenu)} aria-label="Share" className="p-3 rounded-full bg-black/40 hover:bg-black/60 smooth-transition backdrop-blur-sm">
                       <Share2 className="w-5 h-5 text-white" />

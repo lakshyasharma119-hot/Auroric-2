@@ -1,21 +1,19 @@
 export function timeAgo(dateString: string): string {
-  const now = new Date();
   const date = new Date(dateString);
+  const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return 'just now';
+  
+  if (seconds < 60) return 'Just now';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks}w ago`;
+  if (days < 30) return `${days}d`;
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  const years = Math.floor(days / 365);
-  return `${years}y ago`;
+  if (months < 12) return `${months}mo`;
+  const years = Math.floor(months / 12);
+  return `${years}y`;
 }
 
 export function formatCount(count: number): string {
@@ -44,4 +42,23 @@ export function generateAvatarColor(id: string): string {
     hash |= 0;
   }
   return colors[Math.abs(hash) % colors.length];
+}
+
+export function formatBytes(bytes: number, decimals = 1) {
+  if (!+bytes) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+export function estimateDownloadSize(originalSize: number = (4 * 1024 * 1024), quality: 'standard' | 'hd' | 'fullhd'): string {
+  let estimatedBytes = originalSize;
+  if (quality === 'hd') {
+    estimatedBytes = originalSize * 0.40;
+  } else if (quality === 'standard') {
+    estimatedBytes = originalSize * 0.15;
+  }
+  return formatBytes(estimatedBytes);
 }

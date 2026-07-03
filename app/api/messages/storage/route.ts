@@ -27,6 +27,7 @@ export async function GET() {
             limitBytes,
             percentage: Math.min(percentage, 100),
             isVerified: fullUser.isVerified,
+            subscriptionTier: fullUser.subscriptionTier || 'free',
         });
     } catch (error: any) {
         console.error('[messages/storage GET] Error:', error);

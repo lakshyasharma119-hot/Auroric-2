@@ -94,7 +94,7 @@ export default function PinCard({
     e.preventDefault();
     e.stopPropagation();
     if (!isLoggedIn) { openAuthModal('login'); return; }
-    openShareModal({ pinId: id, imageUrl, title });
+    openShareModal({ pinId: id, imageUrl, title, authorId });
   };
 
   const handleQuickSave = (e: React.MouseEvent) => {

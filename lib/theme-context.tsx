@@ -15,6 +15,9 @@ export type ThemeId =
   | 'quiet_luxury'
   | 'modern_editorial';
 
+/** Themes that require Auroric Plus or Prime subscription */
+export const PREMIUM_THEMES: ThemeId[] = ['obsidian_crimson', 'quiet_luxury'];
+
 export interface ThemeDefinition {
   id: ThemeId;
   label: string;

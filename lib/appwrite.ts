@@ -21,3 +21,4 @@ export const MESSAGES_COL = 'messages';
 export const CONVERSATIONS_COL = 'conversations';
 export const DELETION_REQUESTS_COL = 'deletion_requests';
 export const MESSAGE_RELAY_COL = 'message_relay';
+export const ANALYTICS_EVENTS_COL = 'analytics_events';

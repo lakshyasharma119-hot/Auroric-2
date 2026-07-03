@@ -22,6 +22,8 @@ export interface User {
   gender?: string;
   dob?: string;
   country?: string;
+  // ── Subscription ──
+  subscriptionTier: 'free' | 'monthly' | 'yearly';
   // ── Account Security ──
   passwordChangeCount: number;
   passwordChangeLockUntil?: string;
@@ -59,6 +61,7 @@ export interface Pin {
    *  Formula: likes*3 + comments*5 + views*0.1
    *  Recomputed at write time whenever likes/comments/views change. */
   engagementScore?: number;
+  fileSize?: number;
   isPrivate: boolean;
   createdAt: string;
   updatedAt: string;
@@ -119,6 +122,11 @@ export interface DeletionRequest {
 /** Storage limits in bytes */
 export const CHAT_STORAGE_LIMIT_STANDARD = 3 * 1024 * 1024; // 3 MB
 export const CHAT_STORAGE_LIMIT_VERIFIED = 10 * 1024 * 1024; // 10 MB
+
+/** Subscription-tier storage limits in bytes */
+export const CHAT_STORAGE_LIMIT_FREE = 3 * 1024 * 1024;       // 3 MB
+export const CHAT_STORAGE_LIMIT_MONTHLY = 104_857_600;         // 100 MB
+export const CHAT_STORAGE_LIMIT_YEARLY = 524_288_000;          // 500 MB
 
 /** Password rate-limiting */
 export const PASSWORD_CHANGE_MAX_ATTEMPTS = 3;

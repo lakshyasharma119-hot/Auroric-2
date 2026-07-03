@@ -8,6 +8,7 @@ interface StorageData {
     limitBytes: number;
     percentage: number;
     isVerified: boolean;
+    subscriptionTier: 'free' | 'monthly' | 'yearly';
 }
 
 function formatBytes(bytes: number): string {
@@ -60,12 +61,12 @@ export default function ChatStorageBar() {
         );
     }
 
-    const { usedBytes, limitBytes, percentage, isVerified } = data;
+    const { usedBytes, limitBytes, percentage, isVerified, subscriptionTier } = data;
 
     // Determine state
     const isWarning = percentage >= 80 && percentage < 95;
     const isCritical = percentage >= 95;
-    const showUpsell = percentage >= 80 && !isVerified;
+    const showUpsell = percentage >= 80 && subscriptionTier !== 'yearly';
 
     // Progress bar color
     const barColor = isCritical
@@ -106,7 +107,17 @@ export default function ChatStorageBar() {
                 <span className="text-foreground/60">
                     {formatBytes(usedBytes)} / {formatBytes(limitBytes)} used
                 </span>
-                {isVerified && (
+                {subscriptionTier === 'monthly' && (
+                    <span className="flex items-center gap-1 text-[#1D9BF0] text-xs font-semibold">
+                        <Sparkles className="w-3 h-3" /> Plus Storage
+                    </span>
+                )}
+                {subscriptionTier === 'yearly' && (
+                    <span className="flex items-center gap-1 text-[#D4A843] text-xs font-semibold">
+                        <Sparkles className="w-3 h-3" /> Prime Storage
+                    </span>
+                )}
+                {subscriptionTier === 'free' && isVerified && (
                     <span className="flex items-center gap-1 text-accent text-xs">
                         <Sparkles className="w-3 h-3" /> Pro Storage
                     </span>
@@ -142,15 +153,21 @@ export default function ChatStorageBar() {
                             <TrendingUp className="w-5 h-5 text-accent" />
                             <h4 className="font-bold text-foreground">Unlock More Storage</h4>
                         </div>
-                        <p className="text-sm text-foreground/60 mb-4">
-                            Switch to <span className="text-accent font-semibold">Pro</span> or{' '}
-                            <span className="text-accent font-semibold">Get Verified</span> to upgrade
-                            from 3 MB to 10 MB of chat storage.
-                        </p>
+                        {subscriptionTier === 'free' ? (
+                            <p className="text-sm text-foreground/60 mb-4">
+                                Switch to <span className="text-[#1D9BF0] font-semibold">Auroric Plus</span> to upgrade
+                                from 3 MB to 100 MB of chat storage.
+                            </p>
+                        ) : (
+                            <p className="text-sm text-foreground/60 mb-4">
+                                Switch to <span className="text-[#D4A843] font-semibold">Auroric Prime</span> to upgrade
+                                to 500 MB of chat storage.
+                            </p>
+                        )}
                         <div className="flex flex-wrap gap-3">
-                            <button className="luxury-button text-sm px-4 py-2 flex items-center gap-1.5">
-                                <Sparkles className="w-4 h-4" /> Upgrade to Pro
-                            </button>
+                            <a href="/pricing" className="luxury-button text-sm px-4 py-2 flex items-center gap-1.5">
+                                <Sparkles className="w-4 h-4" /> View Plans
+                            </a>
                             <a
                                 href="mailto:support@auroric.com?subject=Storage%20Upgrade%20Inquiry"
                                 className="luxury-button-outline text-sm px-4 py-2 inline-flex items-center gap-1.5"
