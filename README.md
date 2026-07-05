@@ -122,7 +122,7 @@ NEXT_PUBLIC_APPWRITE_ENDPOINT=
 pnpm dev
 ```
 
-Visit `v0-auroric.vercel.app`.
+Visit `v0-auroric.vercel.app`.  
 
 ---
 
